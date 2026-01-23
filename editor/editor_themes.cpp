@@ -1024,6 +1024,8 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	Ref<StyleBoxFlat> style_content_panel = style_default->duplicate();
 	style_content_panel->set_border_color(dark_color_3);
 	style_content_panel->set_border_width_all(border_width);
+	// No rounded corners for tab content panels
+	style_content_panel->set_corner_radius_all(0);
 	// compensate the border
 	style_content_panel->set_default_margin(MARGIN_TOP, margin_size_extra * EDSCALE);
 	style_content_panel->set_default_margin(MARGIN_RIGHT, margin_size_extra * EDSCALE);
@@ -1037,6 +1039,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 
 	Ref<StyleBoxFlat> style_content_panel_odd = style_content_panel->duplicate();
 	style_content_panel_odd->set_bg_color(color_disabled_bg);
+	style_content_panel_odd->set_corner_radius_all(0);
 	theme->set_stylebox("panel_odd", "TabContainer", style_content_panel_odd);
 
 	// This stylebox is used in 3d and 2d viewports (no borders).
@@ -1045,6 +1048,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	style_content_panel_vp->set_default_margin(MARGIN_TOP, default_margin_size * EDSCALE);
 	style_content_panel_vp->set_default_margin(MARGIN_RIGHT, border_width * 2);
 	style_content_panel_vp->set_default_margin(MARGIN_BOTTOM, border_width * 2);
+	style_content_panel_vp->set_corner_radius_all(0);
 	theme->set_stylebox("panel", "TabContainer", style_content_panel);
 	theme->set_stylebox("Content", "EditorStyles", style_content_panel_vp);
 
