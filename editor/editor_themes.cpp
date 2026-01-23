@@ -374,6 +374,10 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 		preset_accent_color = Color(0.16, 0.52, 0.73);
 		preset_base_color = Color(0.25, 0.24, 0.24);
 		preset_contrast = default_contrast;
+	} else if (preset == "Fluxion") {
+		preset_accent_color = Color(0.34, 0.62, 1.0);
+		preset_base_color = Color(0.14, 0.14, 0.14);
+		preset_contrast = 0.3;
 	} else if (preset == "Custom") {
 		accent_color = EDITOR_GET("interface/theme/accent_color");
 		base_color = EDITOR_GET("interface/theme/base_color");
@@ -541,12 +545,16 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	const int default_margin_size = 4;
 	const int margin_size_extra = default_margin_size + CLAMP(border_size, 0, 3);
 
+	// Rounded corners for a less flat look
+	const int corner_radius = 6 * EDSCALE;
+
 	// styleboxes
 	// this is the most commonly used stylebox, variations should be made as duplicate of this
 	Ref<StyleBoxFlat> style_default = make_flat_stylebox(base_color, default_margin_size, default_margin_size, default_margin_size, default_margin_size);
 	style_default->set_border_width_all(border_width);
 	style_default->set_border_color(base_color);
 	style_default->set_draw_center(true);
+	style_default->set_corner_radius_all(corner_radius);
 
 	// Button and widgets
 	const float extra_spacing = EDITOR_GET("interface/theme/additional_spacing");
@@ -558,19 +566,24 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	style_widget->set_default_margin(MARGIN_BOTTOM, (extra_spacing + default_margin_size) * EDSCALE);
 	style_widget->set_bg_color(dark_color_1);
 	style_widget->set_border_color(dark_color_2);
+	style_widget->set_corner_radius_all(corner_radius);
 
 	Ref<StyleBoxFlat> style_widget_disabled = style_widget->duplicate();
 	style_widget_disabled->set_border_color(color_disabled);
 	style_widget_disabled->set_bg_color(color_disabled_bg);
+	style_widget_disabled->set_corner_radius_all(corner_radius);
 
 	Ref<StyleBoxFlat> style_widget_focus = style_widget->duplicate();
 	style_widget_focus->set_border_color(accent_color);
+	style_widget_focus->set_corner_radius_all(corner_radius);
 
 	Ref<StyleBoxFlat> style_widget_pressed = style_widget->duplicate();
 	style_widget_pressed->set_border_color(accent_color);
+	style_widget_pressed->set_corner_radius_all(corner_radius);
 
 	Ref<StyleBoxFlat> style_widget_hover = style_widget->duplicate();
 	style_widget_hover->set_border_color(contrast_color_1);
+	style_widget_hover->set_corner_radius_all(corner_radius);
 
 	// style for windows, popups, etc..
 	Ref<StyleBoxFlat> style_popup = style_default->duplicate();
@@ -584,6 +597,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	const Color shadow_color = Color(0, 0, 0, dark_theme ? 0.3 : 0.1);
 	style_popup->set_shadow_color(shadow_color);
 	style_popup->set_shadow_size(4 * EDSCALE);
+	style_popup->set_corner_radius_all(corner_radius);
 
 	Ref<StyleBoxLine> style_popup_separator(memnew(StyleBoxLine));
 	style_popup_separator->set_color(separator_color);
@@ -604,10 +618,8 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	Ref<StyleBoxEmpty> style_empty = make_empty_stylebox(default_margin_size, default_margin_size, default_margin_size, default_margin_size);
 
 	// Tabs
-
 	const int tab_default_margin_side = 10 * EDSCALE + extra_spacing * EDSCALE;
 	const int tab_default_margin_vertical = 5 * EDSCALE + extra_spacing * EDSCALE;
-
 	Ref<StyleBoxFlat> style_tab_selected = style_widget->duplicate();
 
 	style_tab_selected->set_border_width_all(border_width);
@@ -619,19 +631,34 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	style_tab_selected->set_default_margin(MARGIN_BOTTOM, tab_default_margin_vertical);
 	style_tab_selected->set_default_margin(MARGIN_TOP, tab_default_margin_vertical);
 	style_tab_selected->set_bg_color(tab_color);
+	// Round only the top corners for tabs
+	style_tab_selected->set_corner_radius(CORNER_TOP_LEFT, corner_radius);
+	style_tab_selected->set_corner_radius(CORNER_TOP_RIGHT, corner_radius);
+	style_tab_selected->set_corner_radius(CORNER_BOTTOM_LEFT, 0);
+	style_tab_selected->set_corner_radius(CORNER_BOTTOM_RIGHT, 0);
 
 	Ref<StyleBoxFlat> style_tab_unselected = style_tab_selected->duplicate();
 	style_tab_unselected->set_bg_color(dark_color_1);
 	style_tab_unselected->set_border_color(dark_color_2);
+	style_tab_unselected->set_corner_radius(CORNER_TOP_LEFT, corner_radius);
+	style_tab_unselected->set_corner_radius(CORNER_TOP_RIGHT, corner_radius);
+	style_tab_unselected->set_corner_radius(CORNER_BOTTOM_LEFT, 0);
+	style_tab_unselected->set_corner_radius(CORNER_BOTTOM_RIGHT, 0);
 
 	Ref<StyleBoxFlat> style_tab_disabled = style_tab_selected->duplicate();
 	style_tab_disabled->set_bg_color(color_disabled_bg);
 	style_tab_disabled->set_border_color(color_disabled);
+	style_tab_disabled->set_corner_radius(CORNER_TOP_LEFT, corner_radius);
+	style_tab_disabled->set_corner_radius(CORNER_TOP_RIGHT, corner_radius);
+	style_tab_disabled->set_corner_radius(CORNER_BOTTOM_LEFT, 0);
+	style_tab_disabled->set_corner_radius(CORNER_BOTTOM_RIGHT, 0);
 
 	// Editor background
 	Color background_color_opaque = background_color;
 	background_color_opaque.a = 1.0;
-	theme->set_stylebox("Background", "EditorStyles", make_flat_stylebox(background_color_opaque, default_margin_size, default_margin_size, default_margin_size, default_margin_size));
+	Ref<StyleBoxFlat> style_editor_bg = make_flat_stylebox(background_color_opaque, default_margin_size, default_margin_size, default_margin_size, default_margin_size);
+	style_editor_bg->set_corner_radius_all(corner_radius);
+	theme->set_stylebox("Background", "EditorStyles", style_editor_bg);
 
 	// Focus
 	Ref<StyleBoxFlat> style_focus = style_default->duplicate();
@@ -777,7 +804,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_icon("radio_checked", "CheckBox", theme->get_icon("GuiRadioChecked", "EditorIcons"));
 	theme->set_icon("radio_unchecked", "CheckBox", theme->get_icon("GuiRadioUnchecked", "EditorIcons"));
 	theme->set_icon("radio_checked_disabled", "CheckBox", theme->get_icon("GuiRadioCheckedDisabled", "EditorIcons"));
-	theme->set_icon("radio_unchecked_disabled", "CheckBox", theme->get_icon("GuiRadioUncheckedDisabled", "EditorIcons"));
+	theme->set_icon("radio_unchecked_disabled", "CheckBox", theme->get_icon("GuiRadioUnchecked", "EditorIcons"));
 
 	theme->set_color("font_color", "CheckBox", font_color);
 	theme->set_color("font_color_hover", "CheckBox", font_color_hl);
@@ -1236,7 +1263,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_icon("updown", "SpinBox", theme->get_icon("GuiSpinboxUpdown", "EditorIcons"));
 
 	// ProgressBar
-	theme->set_stylebox("bg", "ProgressBar", make_stylebox(theme->get_icon("GuiProgressBar", "EditorIcons"), 4, 4, 4, 4, 0, 0, 0, 0));
+	theme->set_stylebox("bg", "ProgressBar", make_stylebox(theme->get_icon("GuiProgressBar", "EditorIcons"), 4, 4, 4, 4));
 	theme->set_stylebox("fg", "ProgressBar", make_stylebox(theme->get_icon("GuiProgressFill", "EditorIcons"), 6, 6, 6, 6, 2, 1, 2, 1));
 	theme->set_color("font_color", "ProgressBar", font_color);
 
