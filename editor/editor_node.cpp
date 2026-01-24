@@ -152,6 +152,7 @@
 #include "editor/plugins/texture_region_editor_plugin.h"
 #include "editor/plugins/theme_editor_plugin.h"
 #include "editor/plugins/viewport_preview_editor_plugin.h"
+#include "editor/plugins/visual_shader_editor_plugin.h"
 #include "editor/progress_dialog.h"
 #include "editor/project_export.h"
 #include "editor/project_settings_editor.h"
@@ -6186,6 +6187,10 @@ EditorNode::EditorNode() {
 		Ref<EditorInspectorRootMotionPlugin> rmp;
 		rmp.instance();
 		EditorInspector::add_inspector_plugin(rmp);
+
+		Ref<EditorInspectorShaderModePlugin> smp;
+		smp.instance();
+		EditorInspector::add_inspector_plugin(smp);
 	}
 
 	editor_selection = memnew(EditorSelection);
@@ -7205,7 +7210,15 @@ EditorNode::EditorNode() {
 	Engine::get_singleton()->add_global("EditorInterface", editor_interface);
 
 	//more visually meaningful to have this later
+<<<<<<< HEAD
 	raise_bottom_panel_item(AnimationPlayerEditor::get_singleton());
+=======
+	raise_bottom_panel_item(AnimationPlayerEditor::singleton);
+
+	add_editor_plugin(VersionControlEditorPlugin::get_singleton());
+	add_editor_plugin(memnew(ShaderEditorPlugin(this)));
+	add_editor_plugin(memnew(VisualShaderEditorPlugin(this)));
+>>>>>>> parent of 84bd8ad20 (Removed VisualShaders.)
 
 	add_editor_plugin(memnew(CameraEditorPlugin(this)));
 	add_editor_plugin(memnew(ThemeEditorPlugin(this)));
@@ -7284,6 +7297,10 @@ EditorNode::EditorNode() {
 		Ref<ParticlesMaterialConversionPlugin> particles_mat_convert;
 		particles_mat_convert.instance();
 		resource_conversion_plugins.push_back(particles_mat_convert);
+
+		Ref<VisualShaderConversionPlugin> vshader_convert;
+		vshader_convert.instance();
+		resource_conversion_plugins.push_back(vshader_convert);
 	}
 	update_spinner_step_msec = OS::get_singleton()->get_ticks_msec();
 	update_spinner_step_frame = Engine::get_singleton()->get_frames_drawn();
