@@ -32,7 +32,7 @@
 
 #include "core/core_string_names.h"
 #include "core/os/os.h"
-#include "core/project_settings.h"
+#include "core/config/project_settings.h"
 #include "scene/main/node.h"
 #include "visual_script_nodes.h"
 
@@ -55,7 +55,7 @@ void VisualScriptNode::set_default_input_value(int p_port, const Variant &p_valu
 	default_input_values[p_port] = p_value;
 
 #ifdef TOOLS_ENABLED
-	for (Set<VisualScript *>::Element *E = scripts_used.front(); E; E = E->next()) {
+	for (RBSet<VisualScript *>::Element *E = scripts_used.front(); E; E = E->next()) {
 		E->get()->set_edited(true);
 	}
 #endif
@@ -181,7 +181,7 @@ void VisualScript::remove_function(const StringName &p_name) {
 	ERR_FAIL_COND(instances.size());
 	ERR_FAIL_COND(!functions.has(p_name));
 
-	for (Map<int, Function::NodeData>::Element *E = functions[p_name].nodes.front(); E; E = E->next()) {
+	for (RBMap<int, Function::NodeData>::Element *E = functions[p_name].nodes.front(); E; E = E->next()) {
 		E->get().node->disconnect("ports_changed", this, "_node_ports_changed");
 		E->get().node->scripts_used.erase(this);
 	}
@@ -217,7 +217,7 @@ Vector2 VisualScript::get_function_scroll(const StringName &p_name) const {
 }
 
 void VisualScript::get_function_list(List<StringName> *r_functions) const {
-	for (const Map<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
+	for (const RBMap<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
 		r_functions->push_back(E->key());
 	}
 
@@ -233,7 +233,7 @@ int VisualScript::get_function_node_id(const StringName &p_name) const {
 void VisualScript::_node_ports_changed(int p_id) {
 	StringName function;
 
-	for (Map<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
+	for (RBMap<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
 		if (E->get().nodes.has(p_id)) {
 			function = E->key();
 			break;
@@ -252,7 +252,7 @@ void VisualScript::_node_ports_changed(int p_id) {
 	{
 		List<SequenceConnection> to_remove;
 
-		for (Set<SequenceConnection>::Element *E = func.sequence_connections.front(); E; E = E->next()) {
+		for (RBSet<SequenceConnection>::Element *E = func.sequence_connections.front(); E; E = E->next()) {
 			if (E->get().from_node == p_id && E->get().from_output >= vsn->get_output_sequence_port_count()) {
 				to_remove.push_back(E->get());
 			}
@@ -270,7 +270,7 @@ void VisualScript::_node_ports_changed(int p_id) {
 	{
 		List<DataConnection> to_remove;
 
-		for (Set<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
+		for (RBSet<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
 			if (E->get().from_node == p_id && E->get().from_port >= vsn->get_output_value_port_count()) {
 				to_remove.push_back(E->get());
 			}
@@ -296,7 +296,7 @@ void VisualScript::add_node(const StringName &p_func, int p_id, const Ref<Visual
 	ERR_FAIL_COND(!functions.has(p_func));
 	ERR_FAIL_COND(p_node.is_null());
 
-	for (Map<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
+	for (RBMap<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
 		ERR_FAIL_COND(E->get().nodes.has(p_id)); //id can exist only one in script, even for different functions
 	}
 
@@ -330,7 +330,7 @@ void VisualScript::remove_node(const StringName &p_func, int p_id) {
 	{
 		List<SequenceConnection> to_remove;
 
-		for (Set<SequenceConnection>::Element *E = func.sequence_connections.front(); E; E = E->next()) {
+		for (RBSet<SequenceConnection>::Element *E = func.sequence_connections.front(); E; E = E->next()) {
 			if (E->get().from_node == p_id || E->get().to_node == p_id) {
 				to_remove.push_back(E->get());
 			}
@@ -345,7 +345,7 @@ void VisualScript::remove_node(const StringName &p_func, int p_id) {
 	{
 		List<DataConnection> to_remove;
 
-		for (Set<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
+		for (RBSet<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
 			if (E->get().from_node == p_id || E->get().to_node == p_id) {
 				to_remove.push_back(E->get());
 			}
@@ -404,7 +404,7 @@ void VisualScript::get_node_list(const StringName &p_func, List<int> *r_nodes) c
 	ERR_FAIL_COND(!functions.has(p_func));
 	const Function &func = functions[p_func];
 
-	for (const Map<int, Function::NodeData>::Element *E = func.nodes.front(); E; E = E->next()) {
+	for (const RBMap<int, Function::NodeData>::Element *E = func.nodes.front(); E; E = E->next()) {
 		r_nodes->push_back(E->key());
 	}
 }
@@ -452,7 +452,7 @@ void VisualScript::get_sequence_connection_list(const StringName &p_func, List<S
 	ERR_FAIL_COND(!functions.has(p_func));
 	const Function &func = functions[p_func];
 
-	for (const Set<SequenceConnection>::Element *E = func.sequence_connections.front(); E; E = E->next()) {
+	for (const RBSet<SequenceConnection>::Element *E = func.sequence_connections.front(); E; E = E->next()) {
 		r_connection->push_back(E->get());
 	}
 }
@@ -505,7 +505,7 @@ bool VisualScript::is_input_value_port_connected(const StringName &p_func, int p
 	ERR_FAIL_COND_V(!functions.has(p_func), false);
 	const Function &func = functions[p_func];
 
-	for (const Set<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
+	for (const RBSet<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
 		if (E->get().to_node == p_node && E->get().to_port == p_port) {
 			return true;
 		}
@@ -518,7 +518,7 @@ bool VisualScript::get_input_value_port_connection_source(const StringName &p_fu
 	ERR_FAIL_COND_V(!functions.has(p_func), false);
 	const Function &func = functions[p_func];
 
-	for (const Set<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
+	for (const RBSet<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
 		if (E->get().to_node == p_node && E->get().to_port == p_port) {
 			*r_node = E->get().from_node;
 			*r_port = E->get().from_port;
@@ -533,7 +533,7 @@ void VisualScript::get_data_connection_list(const StringName &p_func, List<DataC
 	ERR_FAIL_COND(!functions.has(p_func));
 	const Function &func = functions[p_func];
 
-	for (const Set<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
+	for (const RBSet<DataConnection>::Element *E = func.data_connections.front(); E; E = E->next()) {
 		r_connection->push_back(E->get());
 	}
 }
@@ -650,7 +650,7 @@ Dictionary VisualScript::_get_variable_info(const StringName &p_name) const {
 }
 
 void VisualScript::get_variable_list(List<StringName> *r_variables) const {
-	for (Map<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
+	for (RBMap<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
 		r_variables->push_back(E->key());
 	}
 
@@ -767,7 +767,7 @@ void VisualScript::rename_custom_signal(const StringName &p_name, const StringNa
 }
 
 void VisualScript::get_custom_signal_list(List<StringName> *r_custom_signals) const {
-	for (const Map<StringName, Vector<Argument>>::Element *E = custom_signals.front(); E; E = E->next()) {
+	for (const RBMap<StringName, Vector<Argument>>::Element *E = custom_signals.front(); E; E = E->next()) {
 		r_custom_signals->push_back(E->key());
 	}
 
@@ -776,7 +776,7 @@ void VisualScript::get_custom_signal_list(List<StringName> *r_custom_signals) co
 
 int VisualScript::get_available_id() const {
 	int max_id = 0;
-	for (Map<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
+	for (RBMap<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
 		if (E->get().nodes.empty()) {
 			continue;
 		}
@@ -798,6 +798,10 @@ StringName VisualScript::get_instance_base_type() const {
 	return base_type;
 }
 
+String VisualScript::get_global_class_name() const {
+	return String();
+}
+
 Ref<Script> VisualScript::get_base_script() const {
 	return Ref<Script>(); // no inheritance in visual script
 }
@@ -812,9 +816,9 @@ void VisualScript::_update_placeholders() {
 		return; //no bother if no placeholders
 	}
 	List<PropertyInfo> pinfo;
-	Map<StringName, Variant> values;
+	RBMap<StringName, Variant> values;
 
-	for (Map<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
+	for (RBMap<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
 		if (!E->get()._export) {
 			continue;
 		}
@@ -825,7 +829,7 @@ void VisualScript::_update_placeholders() {
 		values[p.name] = E->get().default_value;
 	}
 
-	for (Set<PlaceHolderScriptInstance *>::Element *E = placeholders.front(); E; E = E->next()) {
+	for (RBSet<PlaceHolderScriptInstance *>::Element *E = placeholders.front(); E; E = E->next()) {
 		E->get()->update(pinfo, values);
 	}
 }
@@ -840,9 +844,9 @@ ScriptInstance *VisualScript::instance_create(Object *p_this) {
 		placeholders.insert(sins);
 
 		List<PropertyInfo> pinfo;
-		Map<StringName, Variant> values;
+		RBMap<StringName, Variant> values;
 
-		for (Map<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
+		for (RBMap<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
 			if (!E->get()._export) {
 				continue;
 			}
@@ -905,7 +909,7 @@ bool VisualScript::has_script_signal(const StringName &p_signal) const {
 }
 
 void VisualScript::get_script_signal_list(List<MethodInfo> *r_signals) const {
-	for (const Map<StringName, Vector<Argument>>::Element *E = custom_signals.front(); E; E = E->next()) {
+	for (const RBMap<StringName, Vector<Argument>>::Element *E = custom_signals.front(); E; E = E->next()) {
 		MethodInfo mi;
 		mi.name = E->key();
 		for (int i = 0; i < E->get().size(); i++) {
@@ -928,7 +932,7 @@ bool VisualScript::get_property_default_value(const StringName &p_property, Vari
 	return true;
 }
 void VisualScript::get_script_method_list(List<MethodInfo> *p_list) const {
-	for (Map<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
+	for (RBMap<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
 		MethodInfo mi;
 		mi.name = E->key();
 		if (E->get().function_id >= 0) {
@@ -951,7 +955,7 @@ bool VisualScript::has_method(const StringName &p_method) const {
 	return functions.has(p_method);
 }
 MethodInfo VisualScript::get_method_info(const StringName &p_method) const {
-	const Map<StringName, Function>::Element *E = functions.find(p_method);
+	const RBMap<StringName, Function>::Element *E = functions.find(p_method);
 	if (!E) {
 		return MethodInfo();
 	}
@@ -993,7 +997,7 @@ void VisualScript::get_script_property_list(List<PropertyInfo> *p_list) const {
 int VisualScript::get_member_line(const StringName &p_member) const {
 #ifdef TOOLS_ENABLED
 	if (has_function(p_member)) {
-		for (Map<int, Function::NodeData>::Element *E = functions[p_member].nodes.front(); E; E = E->next()) {
+		for (RBMap<int, Function::NodeData>::Element *E = functions[p_member].nodes.front(); E; E = E->next()) {
 			if (Object::cast_to<VisualScriptFunction>(E->get().node.ptr())) {
 				return E->key();
 			}
@@ -1005,8 +1009,8 @@ int VisualScript::get_member_line(const StringName &p_member) const {
 
 #ifdef TOOLS_ENABLED
 bool VisualScript::are_subnodes_edited() const {
-	for (const Map<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
-		for (const Map<int, Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
+	for (const RBMap<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
+		for (const RBMap<int, Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
 			if (F->get().node->is_edited()) {
 				return true;
 			}
@@ -1123,7 +1127,7 @@ Dictionary VisualScript::_get_data() const {
 	Dictionary d;
 	d["base_type"] = base_type;
 	Array vars;
-	for (const Map<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
+	for (const RBMap<StringName, Variable>::Element *E = variables.front(); E; E = E->next()) {
 		Dictionary var = _get_variable_info(E->key());
 		var["name"] = E->key(); //make sure it's the right one
 		var["default_value"] = E->get().default_value;
@@ -1133,7 +1137,7 @@ Dictionary VisualScript::_get_data() const {
 	d["variables"] = vars;
 
 	Array sigs;
-	for (const Map<StringName, Vector<Argument>>::Element *E = custom_signals.front(); E; E = E->next()) {
+	for (const RBMap<StringName, Vector<Argument>>::Element *E = custom_signals.front(); E; E = E->next()) {
 		Dictionary cs;
 		cs["name"] = E->key();
 		Array args;
@@ -1150,7 +1154,7 @@ Dictionary VisualScript::_get_data() const {
 
 	Array funcs;
 
-	for (const Map<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
+	for (const RBMap<StringName, Function>::Element *E = functions.front(); E; E = E->next()) {
 		Dictionary func;
 		func["name"] = E->key();
 		func["function_id"] = E->get().function_id;
@@ -1158,7 +1162,7 @@ Dictionary VisualScript::_get_data() const {
 
 		Array nodes;
 
-		for (const Map<int, Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
+		for (const RBMap<int, Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
 			nodes.push_back(F->key());
 			nodes.push_back(F->get().pos);
 			nodes.push_back(F->get().node);
@@ -1168,7 +1172,7 @@ Dictionary VisualScript::_get_data() const {
 
 		Array sequence_connections;
 
-		for (const Set<SequenceConnection>::Element *F = E->get().sequence_connections.front(); F; F = F->next()) {
+		for (const RBSet<SequenceConnection>::Element *F = E->get().sequence_connections.front(); F; F = F->next()) {
 			sequence_connections.push_back(F->get().from_node);
 			sequence_connections.push_back(F->get().from_output);
 			sequence_connections.push_back(F->get().to_node);
@@ -1178,7 +1182,7 @@ Dictionary VisualScript::_get_data() const {
 
 		Array data_connections;
 
-		for (const Set<DataConnection>::Element *F = E->get().data_connections.front(); F; F = F->next()) {
+		for (const RBSet<DataConnection>::Element *F = E->get().data_connections.front(); F; F = F->next()) {
 			data_connections.push_back(F->get().from_node);
 			data_connections.push_back(F->get().from_port);
 			data_connections.push_back(F->get().to_node);
@@ -1274,10 +1278,10 @@ StringName VisualScript::get_default_func() const {
 	return StringName("f_312843592");
 }
 
-Set<int> VisualScript::get_output_sequence_ports_connected(const String &edited_func, int from_node) {
+RBSet<int> VisualScript::get_output_sequence_ports_connected(const String &edited_func, int from_node) {
 	List<VisualScript::SequenceConnection> *sc = memnew(List<VisualScript::SequenceConnection>);
 	get_sequence_connection_list(edited_func, sc);
-	Set<int> connected;
+	RBSet<int> connected;
 	for (List<VisualScript::SequenceConnection>::Element *E = sc->front(); E; E = E->next()) {
 		if (E->get().from_node == from_node) {
 			connected.insert(E->get().from_output);
@@ -1296,7 +1300,7 @@ VisualScript::~VisualScript() {
 ////////////////////////////////////////////
 
 bool VisualScriptInstance::set(const StringName &p_name, const Variant &p_value) {
-	Map<StringName, Variant>::Element *E = variables.find(p_name);
+	RBMap<StringName, Variant>::Element *E = variables.find(p_name);
 	if (!E) {
 		return false;
 	}
@@ -1307,7 +1311,7 @@ bool VisualScriptInstance::set(const StringName &p_name, const Variant &p_value)
 }
 
 bool VisualScriptInstance::get(const StringName &p_name, Variant &r_ret) const {
-	const Map<StringName, Variant>::Element *E = variables.find(p_name);
+	const RBMap<StringName, Variant>::Element *E = variables.find(p_name);
 	if (!E) {
 		return false;
 	}
@@ -1316,7 +1320,7 @@ bool VisualScriptInstance::get(const StringName &p_name, Variant &r_ret) const {
 	return true;
 }
 void VisualScriptInstance::get_property_list(List<PropertyInfo> *p_properties) const {
-	for (const Map<StringName, VisualScript::Variable>::Element *E = script->variables.front(); E; E = E->next()) {
+	for (const RBMap<StringName, VisualScript::Variable>::Element *E = script->variables.front(); E; E = E->next()) {
 		if (!E->get()._export) {
 			continue;
 		}
@@ -1327,7 +1331,7 @@ void VisualScriptInstance::get_property_list(List<PropertyInfo> *p_properties) c
 	}
 }
 Variant::Type VisualScriptInstance::get_property_type(const StringName &p_name, bool *r_is_valid) const {
-	const Map<StringName, VisualScript::Variable>::Element *E = script->variables.find(p_name);
+	const RBMap<StringName, VisualScript::Variable>::Element *E = script->variables.find(p_name);
 	if (!E) {
 		if (r_is_valid) {
 			*r_is_valid = false;
@@ -1343,7 +1347,7 @@ Variant::Type VisualScriptInstance::get_property_type(const StringName &p_name, 
 }
 
 void VisualScriptInstance::get_method_list(List<MethodInfo> *p_list) const {
-	for (const Map<StringName, VisualScript::Function>::Element *E = script->functions.front(); E; E = E->next()) {
+	for (const RBMap<StringName, VisualScript::Function>::Element *E = script->functions.front(); E; E = E->next()) {
 		if (E->key() == script->get_default_func()) {
 			continue;
 		}
@@ -1427,7 +1431,7 @@ void VisualScriptInstance::_dependency_step(VisualScriptNodeInstance *node, int 
 }
 
 Variant VisualScriptInstance::_call_internal(const StringName &p_method, void *p_stack, int p_stack_size, VisualScriptNodeInstance *p_node, int p_flow_stack_pos, int p_pass, bool p_resuming_yield, Variant::CallError &r_error) {
-	Map<StringName, Function>::Element *F = functions.find(p_method);
+	RBMap<StringName, Function>::Element *F = functions.find(p_method);
 	ERR_FAIL_COND_V(!F, Variant());
 	Function *f = &F->get();
 
@@ -1805,7 +1809,7 @@ Variant VisualScriptInstance::_call_internal(const StringName &p_method, void *p
 Variant VisualScriptInstance::call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 	r_error.error = Variant::CallError::CALL_OK; //ok by default
 
-	Map<StringName, Function>::Element *F = functions.find(p_method);
+	RBMap<StringName, Function>::Element *F = functions.find(p_method);
 	if (!F) {
 		r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 		return Variant();
@@ -1847,7 +1851,7 @@ Variant VisualScriptInstance::call(const StringName &p_method, const Variant **p
 
 	memset(pass_stack, 0, f->pass_stack_size * sizeof(int));
 
-	Map<int, VisualScriptNodeInstance *>::Element *E = instances.find(f->node);
+	RBMap<int, VisualScriptNodeInstance *>::Element *E = instances.find(f->node);
 	if (!E) {
 		r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 
@@ -1930,7 +1934,7 @@ MultiplayerAPI::RPCMode VisualScriptInstance::get_rpc_mode(const StringName &p_m
 		return MultiplayerAPI::RPC_MODE_DISABLED;
 	}
 
-	const Map<StringName, VisualScript::Function>::Element *E = script->functions.find(p_method);
+	const RBMap<StringName, VisualScript::Function>::Element *E = script->functions.find(p_method);
 	if (!E) {
 		return MultiplayerAPI::RPC_MODE_DISABLED;
 	}
@@ -1977,11 +1981,11 @@ void VisualScriptInstance::create(const Ref<VisualScript> &p_script, Object *p_o
 		}
 	}
 
-	for (const Map<StringName, VisualScript::Variable>::Element *E = script->variables.front(); E; E = E->next()) {
+	for (const RBMap<StringName, VisualScript::Variable>::Element *E = script->variables.front(); E; E = E->next()) {
 		variables[E->key()] = E->get().default_value;
 	}
 
-	for (const Map<StringName, VisualScript::Function>::Element *E = script->functions.front(); E; E = E->next()) {
+	for (const RBMap<StringName, VisualScript::Function>::Element *E = script->functions.front(); E; E = E->next()) {
 		if (E->key() == script->get_default_func()) {
 			continue;
 		}
@@ -1993,7 +1997,7 @@ void VisualScriptInstance::create(const Ref<VisualScript> &p_script, Object *p_o
 		function.pass_stack_size = 0;
 		function.node_count = 0;
 
-		Map<StringName, int> local_var_indices;
+		RBMap<StringName, int> local_var_indices;
 
 		if (function.node < 0) {
 			VisualScriptLanguage::singleton->debug_break_parse(get_script()->get_path(), 0, "No start node in function: " + String(E->key()));
@@ -2019,7 +2023,7 @@ void VisualScriptInstance::create(const Ref<VisualScript> &p_script, Object *p_o
 		//multiple passes are required to set up this complex thing..
 
 		//first create the nodes
-		for (const Map<int, VisualScript::Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
+		for (const RBMap<int, VisualScript::Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
 			Ref<VisualScriptNode> node = F->get().node;
 
 			VisualScriptNodeInstance *instance = node->instance(this); //create instance
@@ -2094,7 +2098,7 @@ void VisualScriptInstance::create(const Ref<VisualScript> &p_script, Object *p_o
 
 		//second pass, do data connections
 
-		for (const Set<VisualScript::DataConnection>::Element *F = E->get().data_connections.front(); F; F = F->next()) {
+		for (const RBSet<VisualScript::DataConnection>::Element *F = E->get().data_connections.front(); F; F = F->next()) {
 			VisualScript::DataConnection dc = F->get();
 			ERR_CONTINUE(!instances.has(dc.from_node));
 			VisualScriptNodeInstance *from = instances[dc.from_node];
@@ -2122,7 +2126,7 @@ void VisualScriptInstance::create(const Ref<VisualScript> &p_script, Object *p_o
 
 		//third pass, do sequence connections
 
-		for (const Set<VisualScript::SequenceConnection>::Element *F = E->get().sequence_connections.front(); F; F = F->next()) {
+		for (const RBSet<VisualScript::SequenceConnection>::Element *F = E->get().sequence_connections.front(); F; F = F->next()) {
 			VisualScript::SequenceConnection sc = F->get();
 			ERR_CONTINUE(!instances.has(sc.from_node));
 			VisualScriptNodeInstance *from = instances[sc.from_node];
@@ -2137,7 +2141,7 @@ void VisualScriptInstance::create(const Ref<VisualScript> &p_script, Object *p_o
 		// 1) unassigned input ports to default values
 		// 2) connect unassigned output ports to trash
 
-		for (const Map<int, VisualScript::Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
+		for (const RBMap<int, VisualScript::Function::NodeData>::Element *F = E->get().nodes.front(); F; F = F->next()) {
 			ERR_CONTINUE(!instances.has(F->key()));
 
 			Ref<VisualScriptNode> node = F->get().node;
@@ -2176,7 +2180,7 @@ VisualScriptInstance::~VisualScriptInstance() {
 	script->instances.erase(owner);
 	VisualScriptLanguage::singleton->lock.unlock();
 
-	for (Map<int, VisualScriptNodeInstance *>::Element *E = instances.front(); E; E = E->next()) {
+	for (RBMap<int, VisualScriptNodeInstance *>::Element *E = instances.front(); E; E = E->next()) {
 		memdelete(E->get());
 	}
 }
@@ -2332,7 +2336,7 @@ void VisualScriptLanguage::make_template(const String &p_class_name, const Strin
 	script->set_instance_base_type(p_base_class_name);
 }
 
-bool VisualScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions, List<ScriptLanguage::Warning> *r_warnings, Set<int> *r_safe_lines) const {
+bool VisualScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions, List<ScriptLanguage::Warning> *r_warnings, RBSet<int> *r_safe_lines) const {
 	return false;
 }
 Script *VisualScriptLanguage::create_script() const {
@@ -2559,7 +2563,7 @@ Ref<VisualScriptNode> VisualScriptLanguage::create_node_from_name(const String &
 }
 
 void VisualScriptLanguage::get_registered_node_names(List<String> *r_names) {
-	for (Map<String, VisualScriptNodeRegisterFunc>::Element *E = register_funcs.front(); E; E = E->next()) {
+	for (RBMap<String, VisualScriptNodeRegisterFunc>::Element *E = register_funcs.front(); E; E = E->next()) {
 		r_names->push_back(E->key());
 	}
 }

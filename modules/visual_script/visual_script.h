@@ -31,8 +31,10 @@
 #ifndef VISUAL_SCRIPT_H
 #define VISUAL_SCRIPT_H
 
+#include "core/containers/rb_map.h"
+#include "core/containers/rb_set.h"
 #include "core/os/thread.h"
-#include "core/script_language.h"
+#include "core/object/script_language.h"
 
 class VisualScriptInstance;
 class VisualScriptNodeInstance;
@@ -43,7 +45,7 @@ class VisualScriptNode : public Resource {
 
 	friend class VisualScript;
 
-	Set<VisualScript *> scripts_used;
+	RBSet<VisualScript *> scripts_used;
 
 	Array default_input_values;
 	bool breakpoint;
@@ -214,11 +216,11 @@ private:
 			Ref<VisualScriptNode> node;
 		};
 
-		Map<int, NodeData> nodes;
+		RBMap<int, NodeData> nodes;
 
-		Set<SequenceConnection> sequence_connections;
+		RBSet<SequenceConnection> sequence_connections;
 
-		Set<DataConnection> data_connections;
+		RBSet<DataConnection> data_connections;
 
 		int function_id;
 
@@ -234,16 +236,16 @@ private:
 		// add getter & setter options here
 	};
 
-	Map<StringName, Function> functions;
-	Map<StringName, Variable> variables;
-	Map<StringName, Vector<Argument>> custom_signals;
+	RBMap<StringName, Function> functions;
+	RBMap<StringName, Variable> variables;
+	RBMap<StringName, Vector<Argument>> custom_signals;
 
-	Map<Object *, VisualScriptInstance *> instances;
+	RBMap<Object *, VisualScriptInstance *> instances;
 
 	bool is_tool_script;
 
 #ifdef TOOLS_ENABLED
-	Set<PlaceHolderScriptInstance *> placeholders;
+	RBSet<PlaceHolderScriptInstance *> placeholders;
 	//void _update_placeholder(PlaceHolderScriptInstance *p_placeholder);
 	virtual void _placeholder_erased(PlaceHolderScriptInstance *p_placeholder);
 	void _update_placeholders();
@@ -318,7 +320,7 @@ public:
 	void custom_signal_swap_argument(const StringName &p_func, int p_argidx, int p_with_argidx);
 	void remove_custom_signal(const StringName &p_name);
 	void rename_custom_signal(const StringName &p_name, const StringName &p_new_name);
-	Set<int> get_output_sequence_ports_connected(const String &edited_func, int from_node);
+	RBSet<int> get_output_sequence_ports_connected(const String &edited_func, int from_node);
 
 	void get_custom_signal_list(List<StringName> *r_custom_signals) const;
 
@@ -330,6 +332,7 @@ public:
 
 	virtual Ref<Script> get_base_script() const;
 	virtual StringName get_instance_base_type() const;
+	virtual String get_global_class_name() const;
 	virtual ScriptInstance *instance_create(Object *p_this);
 	virtual bool instance_has(const Object *p_this) const;
 
@@ -368,8 +371,8 @@ class VisualScriptInstance : public ScriptInstance {
 	Object *owner;
 	Ref<VisualScript> script;
 
-	Map<StringName, Variant> variables; //using variable path, not script
-	Map<int, VisualScriptNodeInstance *> instances;
+	RBMap<StringName, Variant> variables; //using variable path, not script
+	RBMap<int, VisualScriptNodeInstance *> instances;
 
 	struct Function {
 		int node;
@@ -381,7 +384,7 @@ class VisualScriptInstance : public ScriptInstance {
 		int argument_count;
 	};
 
-	Map<StringName, Function> functions;
+	RBMap<StringName, Function> functions;
 
 	Vector<Variant> default_values;
 	int max_input_args, max_output_args;
@@ -407,7 +410,7 @@ public:
 	String to_string(bool *r_valid);
 
 	bool set_variable(const StringName &p_variable, const Variant &p_value) {
-		Map<StringName, Variant>::Element *E = variables.find(p_variable);
+		RBMap<StringName, Variant>::Element *E = variables.find(p_variable);
 		if (!E) {
 			return false;
 		}
@@ -417,7 +420,7 @@ public:
 	}
 
 	bool get_variable(const StringName &p_variable, Variant *r_variable) const {
-		const Map<StringName, Variant>::Element *E = variables.find(p_variable);
+		const RBMap<StringName, Variant>::Element *E = variables.find(p_variable);
 		if (!E) {
 			return false;
 		}
@@ -473,7 +476,7 @@ public:
 typedef Ref<VisualScriptNode> (*VisualScriptNodeRegisterFunc)(const String &p_type);
 
 class VisualScriptLanguage : public ScriptLanguage {
-	Map<String, VisualScriptNodeRegisterFunc> register_funcs;
+	RBMap<String, VisualScriptNodeRegisterFunc> register_funcs;
 
 	struct CallLevel {
 		Variant *stack;
@@ -564,7 +567,7 @@ public:
 	virtual Ref<Script> get_template(const String &p_class_name, const String &p_base_class_name) const;
 	virtual bool is_using_templates();
 	virtual void make_template(const String &p_class_name, const String &p_base_class_name, Ref<Script> &p_script);
-	virtual bool validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path = "", List<String> *r_functions = nullptr, List<ScriptLanguage::Warning> *r_warnings = nullptr, Set<int> *r_safe_lines = nullptr) const;
+	virtual bool validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path = "", List<String> *r_functions = nullptr, List<ScriptLanguage::Warning> *r_warnings = nullptr, RBSet<int> *r_safe_lines = nullptr) const;
 	virtual Script *create_script() const;
 	virtual bool has_named_classes() const;
 	virtual bool supports_builtin_mode() const;

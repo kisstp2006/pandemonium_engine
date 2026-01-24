@@ -188,12 +188,9 @@
 #include "scene/resources/text_file.h"
 #include "scene/resources/texture.h"
 #include "scene/resources/video_stream.h"
-<<<<<<< HEAD
-=======
 #include "scene/resources/visual_shader.h"
 #include "scene/resources/visual_shader_nodes.h"
-#include "scene/resources/world.h"
->>>>>>> parent of 84bd8ad20 (Removed VisualShaders.)
+#include "scene/main/world.h"
 #include "scene/resources/world_2d.h"
 #include "scene/resources/world_3d.h"
 

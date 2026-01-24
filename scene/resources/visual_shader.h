@@ -31,8 +31,13 @@
 #ifndef VISUAL_SHADER_H
 #define VISUAL_SHADER_H
 
-#include "core/string_builder.h"
-#include "scene/gui/control.h"
+#include "core/containers/hash_map.h"
+#include "core/containers/list.h"
+#include "core/containers/rb_map.h"
+#include "core/containers/rb_set.h"
+#include "core/containers/vmap.h"
+#include "core/string/string_builder.h"
+#include "scene/main/control.h"
 #include "scene/resources/shader.h"
 
 class VisualShaderNodeUniform;
@@ -69,7 +74,7 @@ private:
 	};
 
 	struct Graph {
-		Map<int, Node> nodes;
+		RBMap<int, Node> nodes;
 		List<Connection> connections;
 	} graph[TYPE_MAX];
 
@@ -86,7 +91,7 @@ private:
 	};
 
 	HashMap<String, int> modes;
-	Set<StringName> flags;
+	RBSet<StringName> flags;
 
 	static RenderModeEnums render_mode_enums[];
 
@@ -104,7 +109,7 @@ private:
 		}
 	};
 
-	Error _write_node(Type p_type, StringBuilder &global_code, StringBuilder &global_code_per_node, Map<Type, StringBuilder> &global_code_per_func, StringBuilder &code, Vector<DefaultTextureParam> &def_tex_params, const VMap<ConnectionKey, const List<Connection>::Element *> &input_connections, const VMap<ConnectionKey, const List<Connection>::Element *> &output_connections, int node, Set<int> &processed, bool for_preview, Set<StringName> &r_classes) const;
+	Error _write_node(Type p_type, StringBuilder &global_code, StringBuilder &global_code_per_node, RBMap<Type, StringBuilder> &global_code_per_func, StringBuilder &code, Vector<DefaultTextureParam> &def_tex_params, const VMap<ConnectionKey, const List<Connection>::Element *> &input_connections, const VMap<ConnectionKey, const List<Connection>::Element *> &output_connections, int node, RBSet<int> &processed, bool for_preview, RBSet<StringName> &r_classes) const;
 
 	void _input_type_changed(Type p_type, int p_id);
 
@@ -172,9 +177,9 @@ class VisualShaderNode : public Resource {
 
 	int port_preview;
 
-	Map<int, Variant> default_input_values;
-	Map<int, bool> connected_input_ports;
-	Map<int, int> connected_output_ports;
+	RBMap<int, Variant> default_input_values;
+	RBMap<int, bool> connected_input_ports;
+	RBMap<int, int> connected_output_ports;
 
 protected:
 	bool simple_decl;
@@ -469,9 +474,9 @@ protected:
 		String name;
 	};
 
-	Map<int, Port> input_ports;
-	Map<int, Port> output_ports;
-	Map<int, Control *> controls;
+	RBMap<int, Port> input_ports;
+	RBMap<int, Port> output_ports;
+	RBMap<int, Control *> controls;
 
 protected:
 	static void _bind_methods();

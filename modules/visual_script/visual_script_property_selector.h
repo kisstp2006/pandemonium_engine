@@ -31,9 +31,11 @@
 #ifndef VISUALSCRIPT_PROPERTYSELECTOR_H
 #define VISUALSCRIPT_PROPERTYSELECTOR_H
 
-#include "editor/editor_help.h"
-#include "editor/property_editor.h"
+#include "scene/gui/dialogs.h"
+#include "scene/gui/tree.h"
+#include "scene/gui/line_edit.h"
 #include "scene/gui/rich_text_label.h"
+#include "editor/editor_help.h"
 
 class VisualScriptPropertySelector : public ConfirmationDialog {
 	GDCLASS(VisualScriptPropertySelector, ConfirmationDialog);
@@ -45,7 +47,7 @@ class VisualScriptPropertySelector : public ConfirmationDialog {
 
 	void create_visualscript_item(const String &name, TreeItem *const root, const String &search_input, const String &text);
 
-	void get_visual_node_names(const String &root_filter, const Set<String> &p_modifiers, bool &found, TreeItem *const root, LineEdit *const search_box);
+	void get_visual_node_names(const String &root_filter, const RBSet<String> &p_modifiers, bool &found, TreeItem *const root, LineEdit *const search_box);
 
 	void _sbox_input(const Ref<InputEvent> &p_ie);
 

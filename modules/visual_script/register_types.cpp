@@ -30,7 +30,7 @@
 
 #include "register_types.h"
 
-#include "core/engine.h"
+#include "core/config/engine.h"
 #include "core/io/resource_loader.h"
 #include "visual_script.h"
 #include "visual_script_builtin_funcs.h"
@@ -46,8 +46,9 @@ VisualScriptLanguage *visual_script_language = nullptr;
 static _VisualScriptEditor *vs_editor_singleton = nullptr;
 #endif
 
-void register_visual_script_types() {
-	visual_script_language = memnew(VisualScriptLanguage);
+void register_visual_script_types(ModuleRegistrationLevel p_level) {
+	if (p_level == MODULE_REGISTRATION_LEVEL_SINGLETON) {
+		visual_script_language = memnew(VisualScriptLanguage);
 	//script_language_gd->init();
 	ScriptServer::register_language(visual_script_language);
 
@@ -116,25 +117,25 @@ void register_visual_script_types() {
 	ClassDB::set_current_api(ClassDB::API_EDITOR);
 	ClassDB::register_class<_VisualScriptEditor>();
 	ClassDB::set_current_api(ClassDB::API_CORE);
-	vs_editor_singleton = memnew(_VisualScriptEditor);
+	_VisualScriptEditor::initialize();
 	Engine::get_singleton()->add_singleton(Engine::Singleton("VisualScriptEditor", _VisualScriptEditor::get_singleton()));
 
 	VisualScriptEditor::register_editor();
 #endif
+	}
 }
 
-void unregister_visual_script_types() {
-	unregister_visual_script_nodes();
+void unregister_visual_script_types(ModuleRegistrationLevel p_level) {
+	if (p_level == MODULE_REGISTRATION_LEVEL_SINGLETON) {
+		unregister_visual_script_nodes();
 
-	ScriptServer::unregister_language(visual_script_language);
+		ScriptServer::unregister_language(visual_script_language);
 
 #ifdef TOOLS_ENABLED
-	VisualScriptEditor::free_clipboard();
-	if (vs_editor_singleton) {
-		memdelete(vs_editor_singleton);
-	}
+		VisualScriptEditor::free_clipboard();
 #endif
-	if (visual_script_language) {
-		memdelete(visual_script_language);
+		if (visual_script_language) {
+			memdelete(visual_script_language);
+		}
 	}
 }

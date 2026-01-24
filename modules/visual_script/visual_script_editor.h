@@ -32,9 +32,12 @@
 #define VISUALSCRIPT_EDITOR_H
 
 #include "editor/create_dialog.h"
-#include "editor/plugins/script_editor_plugin.h"
+#include "editor_modules/editor_code_editor/script_editor_plugin.h"
+#include "editor_modules/editor_code_editor/editor_script_editor_base.h"
 #include "editor/property_editor.h"
+#include "editor/editor_inspector.h"
 #include "scene/gui/graph_edit.h"
+#include "scene/gui/resources/syntax_highlighter.h"
 #include "visual_script.h"
 #include "visual_script_property_selector.h"
 
@@ -43,8 +46,8 @@ class VisualScriptEditorVariableEdit;
 
 #ifdef TOOLS_ENABLED
 
-class VisualScriptEditor : public ScriptEditorBase {
-	GDCLASS(VisualScriptEditor, ScriptEditorBase);
+class VisualScriptEditor : public EditorScriptEditorBase {
+	GDCLASS(VisualScriptEditor, EditorScriptEditorBase);
 
 	enum {
 		TYPE_SEQUENCE = 1000,
@@ -153,11 +156,11 @@ class VisualScriptEditor : public ScriptEditorBase {
 	String _validate_name(const String &p_name) const;
 
 	struct Clipboard {
-		Map<int, Ref<VisualScriptNode>> nodes;
-		Map<int, Vector2> nodes_positions;
+		RBMap<int, Ref<VisualScriptNode>> nodes;
+		RBMap<int, Vector2> nodes_positions;
 
-		Set<VisualScript::SequenceConnection> sequence_connections;
-		Set<VisualScript::DataConnection> data_connections;
+		RBSet<VisualScript::SequenceConnection> sequence_connections;
+		RBSet<VisualScript::DataConnection> data_connections;
 	};
 
 	static Clipboard *clipboard;
@@ -207,7 +210,7 @@ class VisualScriptEditor : public ScriptEditorBase {
 	void _end_node_move();
 	void _move_node(const StringName &p_func, int p_id, const Vector2 &p_to);
 
-	void _get_ends(int p_node, const List<VisualScript::SequenceConnection> &p_seqs, const Set<int> &p_selected, Set<int> &r_end_nodes);
+	void _get_ends(int p_node, const List<VisualScript::SequenceConnection> &p_seqs, const RBSet<int> &p_selected, RBSet<int> &r_end_nodes);
 
 	void _node_moved(Vector2 p_from, Vector2 p_to, int p_id);
 	void _remove_node(int p_id);
@@ -283,7 +286,7 @@ class VisualScriptEditor : public ScriptEditorBase {
 	void _draw_color_over_button(Object *obj, Color p_color);
 	void _button_resource_previewed(const String &p_path, const Ref<Texture> &p_preview, const Ref<Texture> &p_small_preview, Variant p_ud);
 
-	VisualScriptNode::TypeGuess _guess_output_type(int p_port_action_node, int p_port_action_output, Set<int> &p_visited_nodes);
+	VisualScriptNode::TypeGuess _guess_output_type(int p_port_action_node, int p_port_action_output, RBSet<int> &p_visited_nodes);
 
 	void _member_rmb_selected(const Vector2 &p_pos);
 	void _member_option(int p_option);
@@ -293,8 +296,8 @@ protected:
 	static void _bind_methods();
 
 public:
-	virtual void add_syntax_highlighter(SyntaxHighlighter *p_highlighter);
-	virtual void set_syntax_highlighter(SyntaxHighlighter *p_highlighter);
+	virtual void add_syntax_highlighter(Ref<EditorSyntaxHighlighter> p_highlighter);
+	virtual void set_syntax_highlighter(Ref<EditorSyntaxHighlighter> p_highlighter);
 
 	virtual void apply_code();
 	virtual RES get_edited_resource() const;
@@ -346,17 +349,18 @@ protected:
 	static void _bind_methods();
 	static _VisualScriptEditor *singleton;
 
-	static Map<String, RefPtr> custom_nodes;
+	static RBMap<String, RefPtr> custom_nodes;
 	static Ref<VisualScriptNode> create_node_custom(const String &p_name);
-
-public:
-	static _VisualScriptEditor *get_singleton() { return singleton; }
 
 	void add_custom_node(const String &p_name, const String &p_category, const Ref<Script> &p_script);
 	void remove_custom_node(const String &p_name, const String &p_category);
 
 	_VisualScriptEditor();
 	~_VisualScriptEditor();
+
+public:
+	static void initialize();
+	static _VisualScriptEditor *get_singleton();
 };
 #endif
 

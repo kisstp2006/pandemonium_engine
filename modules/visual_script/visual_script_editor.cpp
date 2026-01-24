@@ -30,21 +30,41 @@
 
 #include "visual_script_editor.h"
 
-#include "core/object.h"
-#include "core/os/input.h"
+#include "core/object/object.h"
+#include "core/input/input.h"
 #include "core/os/keyboard.h"
-#include "core/script_language.h"
-#include "core/variant.h"
+#include "core/object/script_language.h"
+#include "core/variant/variant.h"
+#include "editor/editor_settings.h"
 #include "editor/editor_node.h"
 #include "editor/editor_resource_preview.h"
 #include "editor/editor_scale.h"
+#include "editor_modules/editor_code_editor/editor_script_editor.h"
+#include "scene/gui/graph_node.h"
+#include "scene/gui/option_button.h"
+#include "scene/gui/popup_menu.h"
+#include "scene/gui/check_button.h"
+#include "scene/gui/separator.h"
+#include "scene/gui/texture_rect.h"
+#include "scene/gui/tree.h"
+#include "scene/gui/label.h"
+#include "scene/gui/line_edit.h"
+#include "scene/gui/graph_edit.h"
+#include "scene/main/timer.h"
 #include "scene/main/viewport.h"
 #include "visual_script_expression.h"
 #include "visual_script_flow_control.h"
 #include "visual_script_func_nodes.h"
+// visual_script_language is declared in visual_script.h
 #include "visual_script_nodes.h"
 
 #ifdef TOOLS_ENABLED
+
+// Helper function for getting icons from EditorNode theme
+static Ref<Texture> get_editor_icon(const String &p_name) {
+	return EditorNode::get_singleton()->get_gui_base()->get_theme()->get_icon(p_name, "EditorIcons");
+}
+
 class VisualScriptEditorSignalEdit : public Object {
 	GDCLASS(VisualScriptEditorSignalEdit, Object);
 
@@ -373,7 +393,7 @@ static Color _color_from_type(Variant::Type p_type, bool dark_theme = true) {
 			case Variant::PLANE:
 				color = Color(0.97, 0.44, 0.44);
 				break;
-			case Variant::QUAT:
+			case Variant::QUATERNION:
 				color = Color(0.93, 0.41, 0.64);
 				break;
 			case Variant::AABB:
@@ -392,7 +412,7 @@ static Color _color_from_type(Variant::Type p_type, bool dark_theme = true) {
 			case Variant::NODE_PATH:
 				color = Color(0.41, 0.58, 0.93);
 				break;
-			case Variant::_RID:
+			case Variant::RID:
 				color = Color(0.41, 0.93, 0.6);
 				break;
 			case Variant::OBJECT:
@@ -464,7 +484,7 @@ static Color _color_from_type(Variant::Type p_type, bool dark_theme = true) {
 			case Variant::PLANE:
 				color = Color(0.97, 0.44, 0.44);
 				break;
-			case Variant::QUAT:
+			case Variant::QUATERNION:
 				color = Color(0.93, 0.41, 0.64);
 				break;
 			case Variant::AABB:
@@ -483,7 +503,7 @@ static Color _color_from_type(Variant::Type p_type, bool dark_theme = true) {
 			case Variant::NODE_PATH:
 				color = Color(0.41, 0.58, 0.93);
 				break;
-			case Variant::_RID:
+			case Variant::RID:
 				color = Color(0.17, 0.9, 0.45);
 				break;
 			case Variant::OBJECT:
@@ -603,36 +623,36 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 	select_func_text->hide();
 
 	Ref<Texture> type_icons[Variant::VARIANT_MAX] = {
-		Control::get_icon("Variant", "EditorIcons"),
-		Control::get_icon("bool", "EditorIcons"),
-		Control::get_icon("int", "EditorIcons"),
-		Control::get_icon("float", "EditorIcons"),
-		Control::get_icon("String", "EditorIcons"),
-		Control::get_icon("Vector2", "EditorIcons"),
-		Control::get_icon("Rect2", "EditorIcons"),
-		Control::get_icon("Vector3", "EditorIcons"),
-		Control::get_icon("Transform2D", "EditorIcons"),
-		Control::get_icon("Plane", "EditorIcons"),
-		Control::get_icon("Quat", "EditorIcons"),
-		Control::get_icon("AABB", "EditorIcons"),
-		Control::get_icon("Basis", "EditorIcons"),
-		Control::get_icon("Transform", "EditorIcons"),
-		Control::get_icon("Color", "EditorIcons"),
-		Control::get_icon("NodePath", "EditorIcons"),
-		Control::get_icon("RID", "EditorIcons"),
-		Control::get_icon("MiniObject", "EditorIcons"),
-		Control::get_icon("Dictionary", "EditorIcons"),
-		Control::get_icon("Array", "EditorIcons"),
-		Control::get_icon("PoolByteArray", "EditorIcons"),
-		Control::get_icon("PoolIntArray", "EditorIcons"),
-		Control::get_icon("PoolRealArray", "EditorIcons"),
-		Control::get_icon("PoolStringArray", "EditorIcons"),
-		Control::get_icon("PoolVector2Array", "EditorIcons"),
-		Control::get_icon("PoolVector3Array", "EditorIcons"),
-		Control::get_icon("PoolColorArray", "EditorIcons")
+		get_editor_icon("Variant"),
+		get_editor_icon("bool"),
+		get_editor_icon("int"),
+		get_editor_icon("float"),
+		get_editor_icon("String"),
+		get_editor_icon("Vector2"),
+		get_editor_icon("Rect2"),
+		get_editor_icon("Vector3"),
+		get_editor_icon("Transform2D"),
+		get_editor_icon("Plane"),
+		get_editor_icon("Quat"),
+		get_editor_icon("AABB"),
+		get_editor_icon("Basis"),
+		get_editor_icon("Transform"),
+		get_editor_icon("Color"),
+		get_editor_icon("NodePath"),
+		get_editor_icon("RID"),
+		get_editor_icon("MiniObject"),
+		get_editor_icon("Dictionary"),
+		get_editor_icon("Array"),
+		get_editor_icon("PoolByteArray"),
+		get_editor_icon("PoolIntArray"),
+		get_editor_icon("PoolRealArray"),
+		get_editor_icon("PoolStringArray"),
+		get_editor_icon("PoolVector2Array"),
+		get_editor_icon("PoolVector3Array"),
+		get_editor_icon("PoolColorArray")
 	};
 
-	Ref<Texture> seq_port = Control::get_icon("VisualShaderPort", "EditorIcons");
+	Ref<Texture> seq_port = get_editor_icon("VisualShaderPort");
 
 	for (List<StringName>::Element *F = funcs.front(); F; F = F->next()) { // loop through all the functions
 
@@ -696,7 +716,7 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 				LineEdit *line_edit = memnew(LineEdit);
 				line_edit->set_text(node->get_text());
 				line_edit->set_expand_to_text_length(true);
-				line_edit->add_font_override("font", get_font("source", "EditorFonts"));
+				line_edit->add_theme_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_theme()->get_font("source", "EditorFonts"));
 				gnode->add_child(line_edit);
 				line_edit->connect("text_changed", this, "_expression_text_changed", varray(E->get()));
 			} else {
@@ -730,14 +750,14 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 					mono_color.a = 0.85;
 					c = mono_color;
 				}
-				gnode->add_color_override("title_color", c);
+				gnode->add_theme_color_override("title_color", c);
 				c.a = 0.7;
-				gnode->add_color_override("close_color", c);
-				gnode->add_color_override("resizer_color", c);
-				gnode->add_style_override("frame", sbf);
+				gnode->add_theme_color_override("close_color", c);
+				gnode->add_theme_color_override("resizer_color", c);
+				gnode->add_theme_style_override("frame", sbf);
 			}
 
-			const Color mono_color = get_color("mono_color", "Editor");
+			const Color mono_color = gnode->get_theme_color("mono_color", "Editor");
 
 			int slot_idx = 0;
 
@@ -839,7 +859,7 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 						}
 
 						Button *rmbtn = memnew(Button);
-						rmbtn->set_icon(EditorNode::get_singleton()->get_gui_base()->get_icon("Remove", "EditorIcons"));
+						rmbtn->set_icon(get_editor_icon("Remove"));
 						hbc->add_child(rmbtn);
 						rmbtn->connect("pressed", this, "_remove_input_port", varray(E->get(), i), CONNECT_DEFERRED);
 					} else {
@@ -895,7 +915,7 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 				if (right_ok) {
 					if (is_vslist) {
 						Button *rmbtn = memnew(Button);
-						rmbtn->set_icon(EditorNode::get_singleton()->get_gui_base()->get_icon("Remove", "EditorIcons"));
+						rmbtn->set_icon(get_editor_icon("Remove"));
 						hbc->add_child(rmbtn);
 						rmbtn->connect("pressed", this, "_remove_output_port", varray(E->get(), i), CONNECT_DEFERRED);
 
@@ -939,7 +959,7 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 
 				gnode->add_child(vbc);
 
-				bool dark_theme = get_constant("dark_theme", "Editor");
+				bool dark_theme = EditorNode::get_singleton()->get_theme_base()->get_theme()->get_constant("dark_theme", "Editor");
 				if (i < mixed_seq_ports) {
 					gnode->set_slot(slot_idx, left_ok, left_type, _color_from_type(left_type, dark_theme), true, TYPE_SEQUENCE, mono_color, Ref<Texture>(), seq_port);
 				} else {
@@ -1029,9 +1049,9 @@ void VisualScriptEditor::_update_members() {
 	TreeItem *functions = members->create_item(root);
 	functions->set_selectable(0, false);
 	functions->set_text(0, TTR("Functions:"));
-	functions->add_button(0, Control::get_icon("Override", "EditorIcons"), 1, false, TTR("Override an existing built-in function."));
-	functions->add_button(0, Control::get_icon("Add", "EditorIcons"), 0, false, TTR("Create a new function."));
-	functions->set_custom_color(0, Control::get_color("mono_color", "Editor"));
+	functions->add_button(0, get_editor_icon("Override"), 1, false, TTR("Override an existing built-in function."));
+	functions->add_button(0, get_editor_icon("Add"), 0, false, TTR("Create a new function."));
+	functions->set_custom_color(0, members->get_theme_color("mono_color", "Editor"));
 
 	List<StringName> func_names;
 	script->get_function_list(&func_names);
@@ -1044,7 +1064,7 @@ void VisualScriptEditor::_update_members() {
 		ti->set_text(0, E->get());
 		ti->set_selectable(0, true);
 		ti->set_metadata(0, E->get());
-		ti->add_button(0, Control::get_icon("Edit", "EditorIcons"), 0);
+		ti->add_button(0, get_editor_icon("Edit"), 0);
 		if (selected == E->get()) {
 			ti->select(0);
 		}
@@ -1053,37 +1073,37 @@ void VisualScriptEditor::_update_members() {
 	TreeItem *variables = members->create_item(root);
 	variables->set_selectable(0, false);
 	variables->set_text(0, TTR("Variables:"));
-	variables->add_button(0, Control::get_icon("Add", "EditorIcons"), -1, false, TTR("Create a new variable."));
-	variables->set_custom_color(0, Control::get_color("mono_color", "Editor"));
+	variables->add_button(0, get_editor_icon("Add"), -1, false, TTR("Create a new variable."));
+	variables->set_custom_color(0, members->get_theme_color("mono_color", "Editor"));
 
 	Ref<Texture> type_icons[Variant::VARIANT_MAX] = {
-		Control::get_icon("Variant", "EditorIcons"),
-		Control::get_icon("bool", "EditorIcons"),
-		Control::get_icon("int", "EditorIcons"),
-		Control::get_icon("float", "EditorIcons"),
-		Control::get_icon("String", "EditorIcons"),
-		Control::get_icon("Vector2", "EditorIcons"),
-		Control::get_icon("Rect2", "EditorIcons"),
-		Control::get_icon("Vector3", "EditorIcons"),
-		Control::get_icon("Transform2D", "EditorIcons"),
-		Control::get_icon("Plane", "EditorIcons"),
-		Control::get_icon("Quat", "EditorIcons"),
-		Control::get_icon("AABB", "EditorIcons"),
-		Control::get_icon("Basis", "EditorIcons"),
-		Control::get_icon("Transform", "EditorIcons"),
-		Control::get_icon("Color", "EditorIcons"),
-		Control::get_icon("NodePath", "EditorIcons"),
-		Control::get_icon("RID", "EditorIcons"),
-		Control::get_icon("MiniObject", "EditorIcons"),
-		Control::get_icon("Dictionary", "EditorIcons"),
-		Control::get_icon("Array", "EditorIcons"),
-		Control::get_icon("PoolByteArray", "EditorIcons"),
-		Control::get_icon("PoolIntArray", "EditorIcons"),
-		Control::get_icon("PoolRealArray", "EditorIcons"),
-		Control::get_icon("PoolStringArray", "EditorIcons"),
-		Control::get_icon("PoolVector2Array", "EditorIcons"),
-		Control::get_icon("PoolVector3Array", "EditorIcons"),
-		Control::get_icon("PoolColorArray", "EditorIcons")
+		get_editor_icon("Variant"),
+		get_editor_icon("bool"),
+		get_editor_icon("int"),
+		get_editor_icon("float"),
+		get_editor_icon("String"),
+		get_editor_icon("Vector2"),
+		get_editor_icon("Rect2"),
+		get_editor_icon("Vector3"),
+		get_editor_icon("Transform2D"),
+		get_editor_icon("Plane"),
+		get_editor_icon("Quat"),
+		get_editor_icon("AABB"),
+		get_editor_icon("Basis"),
+		get_editor_icon("Transform"),
+		get_editor_icon("Color"),
+		get_editor_icon("NodePath"),
+		get_editor_icon("RID"),
+		get_editor_icon("MiniObject"),
+		get_editor_icon("Dictionary"),
+		get_editor_icon("Array"),
+		get_editor_icon("PoolByteArray"),
+		get_editor_icon("PoolIntArray"),
+		get_editor_icon("PoolRealArray"),
+		get_editor_icon("PoolStringArray"),
+		get_editor_icon("PoolVector2Array"),
+		get_editor_icon("PoolVector3Array"),
+		get_editor_icon("PoolColorArray")
 	};
 
 	List<StringName> var_names;
@@ -1107,8 +1127,8 @@ void VisualScriptEditor::_update_members() {
 	TreeItem *_signals = members->create_item(root);
 	_signals->set_selectable(0, false);
 	_signals->set_text(0, TTR("Signals:"));
-	_signals->add_button(0, Control::get_icon("Add", "EditorIcons"), -1, false, TTR("Create a new signal."));
-	_signals->set_custom_color(0, Control::get_color("mono_color", "Editor"));
+	_signals->add_button(0, get_editor_icon("Add"), -1, false, TTR("Create a new signal."));
+	_signals->set_custom_color(0, members->get_theme_color("mono_color", "Editor"));
 
 	List<StringName> signal_names;
 	script->get_custom_signal_list(&signal_names);
@@ -1125,12 +1145,12 @@ void VisualScriptEditor::_update_members() {
 
 	String base_type = script->get_instance_base_type();
 	String icon_type = base_type;
-	if (!Control::has_icon(base_type, "EditorIcons")) {
+	if (!EditorNode::get_singleton()->get_gui_base()->get_theme()->has_icon(base_type, "EditorIcons")) {
 		icon_type = "Object";
 	}
 
 	base_type_select->set_text(base_type);
-	base_type_select->set_icon(Control::get_icon(icon_type, "EditorIcons"));
+	base_type_select->set_icon(get_editor_icon(icon_type));
 
 	updating_members = false;
 }
@@ -1353,7 +1373,7 @@ void VisualScriptEditor::_add_func_input() {
 	hbox->add_child(type_box);
 
 	Button *delete_button = memnew(Button);
-	delete_button->set_icon(EditorNode::get_singleton()->get_gui_base()->get_icon("Remove", "EditorIcons"));
+	delete_button->set_icon(get_editor_icon("Remove"));
 	delete_button->set_tooltip(vformat(TTR("Delete input port")));
 	hbox->add_child(delete_button);
 
@@ -1560,12 +1580,12 @@ void VisualScriptEditor::_remove_output_port(int p_id, int p_port) {
 	List<VisualScript::DataConnection> data_connections;
 	script->get_data_connection_list(func, &data_connections);
 
-	HashMap<int, Set<int>> conn_map;
+	HashMap<int, RBSet<int>> conn_map;
 	for (const List<VisualScript::DataConnection>::Element *E = data_connections.front(); E; E = E->next()) {
 		if (E->get().from_node == p_id && E->get().from_port == p_port) {
 			// push into the connections map
 			if (!conn_map.has(E->get().to_node)) {
-				conn_map.set(E->get().to_node, Set<int>());
+				conn_map.set(E->get().to_node, RBSet<int>());
 			}
 			conn_map[E->get().to_node].insert(E->get().to_port);
 		}
@@ -1577,7 +1597,7 @@ void VisualScriptEditor::_remove_output_port(int p_id, int p_port) {
 	List<int> keys;
 	conn_map.get_key_list(&keys);
 	for (const List<int>::Element *E = keys.front(); E; E = E->next()) {
-		for (const Set<int>::Element *F = conn_map[E->get()].front(); F; F = F->next()) {
+		for (const RBSet<int>::Element *F = conn_map[E->get()].front(); F; F = F->next()) {
 			undo_redo->add_undo_method(script.ptr(), "data_connect", func, p_id, p_port, E->get(), F->get());
 		}
 	}
@@ -1727,7 +1747,7 @@ void VisualScriptEditor::_on_nodes_delete() {
 }
 
 void VisualScriptEditor::_on_nodes_duplicate() {
-	Set<int> to_duplicate;
+	RBSet<int> to_duplicate;
 	List<StringName> funcs;
 
 	for (int i = 0; i < graph->get_child_count(); i++) {
@@ -1748,10 +1768,10 @@ void VisualScriptEditor::_on_nodes_duplicate() {
 	undo_redo->create_action(TTR("Duplicate VisualScript Nodes"));
 	int idc = script->get_available_id() + 1;
 
-	Set<int> to_select;
+	RBSet<int> to_select;
 	HashMap<int, int> remap;
 
-	for (Set<int>::Element *F = to_duplicate.front(); F; F = F->next()) {
+	for (RBSet<int>::Element *F = to_duplicate.front(); F; F = F->next()) {
 		// duplicate from the specific function but place it into the default func as it would lack the connections
 		StringName func = _get_function_of_node(F->get());
 		Ref<VisualScriptNode> node = script->get_node(func, F->get());
@@ -2411,7 +2431,7 @@ void VisualScriptEditor::_draw_color_over_button(Object *obj, Color p_color) {
 		return;
 	}
 
-	Ref<StyleBox> normal = get_stylebox("normal", "Button");
+	Ref<StyleBox> normal = get_theme_stylebox("normal", "Button");
 	button->draw_rect(Rect2(normal->get_offset(), button->get_size() - normal->get_minimum_size()), p_color);
 }
 
@@ -2502,7 +2522,7 @@ String VisualScriptEditor::get_name() {
 }
 
 Ref<Texture> VisualScriptEditor::get_icon() {
-	return Control::get_icon("VisualScript", "EditorIcons");
+	return get_editor_icon("VisualScript");
 }
 
 bool VisualScriptEditor::is_unsaved() {
@@ -3110,24 +3130,24 @@ void VisualScriptEditor::_graph_disconnected(const String &p_from, int p_from_sl
 }
 
 void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, const StringName &p_func_to, int p_id) {
-	Set<int> nodes_to_move;
-	HashMap<int, Map<int, int>> seqconns_to_move; // from => List(outp, to)
-	HashMap<int, Map<int, Pair<int, int>>> dataconns_to_move; // to => List(inp_p => from, outp)
+	RBSet<int> nodes_to_move;
+	HashMap<int, RBMap<int, int>> seqconns_to_move; // from => List(outp, to)
+	HashMap<int, RBMap<int, Pair<int, int>>> dataconns_to_move; // to => List(inp_p => from, outp)
 
 	nodes_to_move.insert(p_id);
-	Set<int> sequence_connections;
+	RBSet<int> sequence_connections;
 	{
 		List<VisualScript::SequenceConnection> sequence_conns;
 		script->get_sequence_connection_list(p_func_from, &sequence_conns);
 
-		HashMap<int, Map<int, int>> seqcons; // from => List(out_p => to)
+		HashMap<int, RBMap<int, int>> seqcons; // from => List(out_p => to)
 
 		for (List<VisualScript::SequenceConnection>::Element *E = sequence_conns.front(); E; E = E->next()) {
 			int from = E->get().from_node;
 			int to = E->get().to_node;
 			int out_p = E->get().from_output;
 			if (!seqcons.has(from)) {
-				seqcons.set(from, Map<int, int>());
+				seqcons.set(from, RBMap<int, int>());
 			}
 			seqcons[from].insert(out_p, to);
 			sequence_connections.insert(to);
@@ -3136,7 +3156,7 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 
 		int conn = p_id;
 		List<int> stack;
-		HashMap<int, Set<int>> seen; // from, outp
+		HashMap<int, RBSet<int>> seen; // from, outp
 		while (seqcons.has(conn)) {
 			for (auto E = seqcons[conn].front(); E; E = E->next()) {
 				if (seen.has(conn) && seen[conn].has(E->key())) {
@@ -3152,12 +3172,12 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 					continue;
 				}
 				if (!seen.has(conn)) {
-					seen.set(conn, Set<int>());
+					seen.set(conn, RBSet<int>());
 				}
 				seen[conn].insert(E->key());
 				stack.push_back(conn);
 				if (!seqconns_to_move.has(conn)) {
-					seqconns_to_move.set(conn, Map<int, int>());
+					seqconns_to_move.set(conn, RBMap<int, int>());
 				}
 				seqconns_to_move[conn].insert(E->key(), E->get());
 				conn = E->get();
@@ -3176,7 +3196,7 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 		script->get_data_connection_list(p_func_from, &data_connections);
 		int func_from_node_id = script->get_function_node_id(p_func_from);
 
-		HashMap<int, Map<int, Pair<int, int>>> connections;
+		HashMap<int, RBMap<int, Pair<int, int>>> connections;
 
 		for (List<VisualScript::DataConnection>::Element *E = data_connections.front(); E; E = E->next()) {
 			int from = E->get().from_node;
@@ -3190,15 +3210,15 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 			}
 
 			if (!connections.has(to)) {
-				connections.set(to, Map<int, Pair<int, int>>());
+				connections.set(to, RBMap<int, Pair<int, int>>());
 			}
 			connections[to].insert(in_p, Pair<int, int>(from, out_p));
 		}
 
 		// go through the HashMap and do all sorts of crazy ass stuff now...
-		Set<int> nodes_to_be_added;
-		for (Set<int>::Element *F = nodes_to_move.front(); F; F = F->next()) {
-			HashMap<int, Set<int>> seen;
+		RBSet<int> nodes_to_be_added;
+		for (RBSet<int>::Element *F = nodes_to_move.front(); F; F = F->next()) {
+			HashMap<int, RBSet<int>> seen;
 			List<int> stack;
 			int id = F->get();
 			while (connections.has(id)) {
@@ -3229,12 +3249,12 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 					}
 
 					if (!seen.has(id)) {
-						seen.set(id, Set<int>());
+						seen.set(id, RBSet<int>());
 					}
 					seen[id].insert(E->key());
 					stack.push_back(id);
 					if (!dataconns_to_move.has(id)) {
-						dataconns_to_move.set(id, Map<int, Pair<int, int>>());
+						dataconns_to_move.set(id, RBMap<int, Pair<int, int>>());
 					}
 					dataconns_to_move[id].insert(E->key(), Pair<int, int>(E->get().first, E->get().second));
 					id = E->get().first;
@@ -3247,7 +3267,7 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 				}
 			}
 		}
-		for (Set<int>::Element *E = nodes_to_be_added.front(); E; E = E->next()) {
+		for (RBSet<int>::Element *E = nodes_to_be_added.front(); E; E = E->next()) {
 			nodes_to_move.insert(E->get());
 		}
 	}
@@ -3280,7 +3300,7 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 
 	// undo_redo->create_action("Rescan Functions");
 
-	for (Set<int>::Element *E = nodes_to_move.front(); E; E = E->next()) {
+	for (RBSet<int>::Element *E = nodes_to_move.front(); E; E = E->next()) {
 		int id = E->get();
 
 		undo_redo->add_do_method(script.ptr(), "remove_node", p_func_from, id);
@@ -3294,7 +3314,7 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 	seqconns_to_move.get_key_list(&skeys);
 	for (List<int>::Element *E = skeys.front(); E; E = E->next()) {
 		int from_node = E->get();
-		for (Map<int, int>::Element *F = seqconns_to_move[from_node].front(); F; F = F->next()) {
+		for (RBMap<int, int>::Element *F = seqconns_to_move[from_node].front(); F; F = F->next()) {
 			int from_port = F->key();
 			int to_node = F->get();
 			undo_redo->add_do_method(script.ptr(), "sequence_connect", p_func_to, from_node, from_port, to_node);
@@ -3306,7 +3326,7 @@ void VisualScriptEditor::_move_nodes_with_rescan(const StringName &p_func_from, 
 	dataconns_to_move.get_key_list(&keys);
 	for (List<int>::Element *E = keys.front(); E; E = E->next()) {
 		int to_node = E->get(); // to_node
-		for (Map<int, Pair<int, int>>::Element *F = dataconns_to_move[E->get()].front(); F; F = F->next()) {
+		for (RBMap<int, Pair<int, int>>::Element *F = dataconns_to_move[E->get()].front(); F; F = F->next()) {
 			int inp_p = F->key();
 			Pair<int, int> fro = F->get();
 
@@ -3359,7 +3379,7 @@ void VisualScriptEditor::_graph_connect_to_empty(const String &p_from, int p_fro
 	}
 }
 
-VisualScriptNode::TypeGuess VisualScriptEditor::_guess_output_type(int p_port_action_node, int p_port_action_output, Set<int> &visited_nodes) {
+VisualScriptNode::TypeGuess VisualScriptEditor::_guess_output_type(int p_port_action_node, int p_port_action_output, RBSet<int> &visited_nodes) {
 	VisualScriptNode::TypeGuess tg;
 	tg.type = Variant::NIL;
 
@@ -3412,7 +3432,7 @@ VisualScriptNode::TypeGuess VisualScriptEditor::_guess_output_type(int p_port_ac
 }
 
 void VisualScriptEditor::_port_action_menu(int p_option, const StringName &func) {
-	Set<int> vn;
+	RBSet<int> vn;
 
 	switch (p_option) {
 		case CREATE_CALL_SET_GET: {
@@ -3505,7 +3525,7 @@ void VisualScriptEditor::connect_data(Ref<VisualScriptNode> vnode_old, Ref<Visua
 void VisualScriptEditor::_selected_connect_node(const String &p_text, const String &p_category, const bool p_connecting) {
 	Vector2 pos = _get_pos_in_graph(port_action_pos);
 
-	Set<int> vn;
+	RBSet<int> vn;
 
 	if (drop_position != Vector2()) {
 		pos = drop_position;
@@ -3988,9 +4008,9 @@ void VisualScriptEditor::_notification(int p_what) {
 				return;
 			}
 
-			edit_variable_edit->add_style_override("bg", get_stylebox("bg", "Tree"));
-			edit_signal_edit->add_style_override("bg", get_stylebox("bg", "Tree"));
-			func_input_scroll->add_style_override("bg", get_stylebox("bg", "Tree"));
+			edit_variable_edit->add_theme_style_override("bg", EditorNode::get_singleton()->get_gui_base()->get_theme()->get_stylebox("bg", "Tree"));
+			edit_signal_edit->add_theme_style_override("bg", EditorNode::get_singleton()->get_gui_base()->get_theme()->get_stylebox("bg", "Tree"));
+			func_input_scroll->add_theme_style_override("bg", EditorNode::get_singleton()->get_gui_base()->get_theme()->get_stylebox("bg", "Tree"));
 
 			Ref<Theme> tm = EditorNode::get_singleton()->get_theme_base()->get_theme();
 
@@ -4136,7 +4156,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 			clipboard->data_connections.clear();
 			clipboard->sequence_connections.clear();
 
-			Set<String> funcs;
+			RBSet<String> funcs;
 			for (int i = 0; i < graph->get_child_count(); i++) {
 				GraphNode *gn = Object::cast_to<GraphNode>(graph->get_child(i));
 				if (gn) {
@@ -4161,7 +4181,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 				break;
 			}
 
-			for (Set<String>::Element *F = funcs.front(); F; F = F->next()) {
+			for (RBSet<String>::Element *F = funcs.front(); F; F = F->next()) {
 				List<VisualScript::SequenceConnection> sequence_connections;
 
 				script->get_sequence_connection_list(F->get(), &sequence_connections);
@@ -4197,14 +4217,14 @@ void VisualScriptEditor::_menu_option(int p_what) {
 				break;
 			}
 
-			Map<int, int> remap;
+			RBMap<int, int> remap;
 
 			undo_redo->create_action(TTR("Paste VisualScript Nodes"));
 			int idc = script->get_available_id() + 1;
 
-			Set<int> to_select;
+			RBSet<int> to_select;
 
-			Set<Vector2> existing_positions;
+			RBSet<Vector2> existing_positions;
 
 			{
 				List<StringName> functions;
@@ -4219,7 +4239,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 				}
 			}
 
-			for (Map<int, Ref<VisualScriptNode>>::Element *E = clipboard->nodes.front(); E; E = E->next()) {
+			for (RBMap<int, Ref<VisualScriptNode>>::Element *E = clipboard->nodes.front(); E; E = E->next()) {
 				Ref<VisualScriptNode> node = E->get()->duplicate();
 
 				int new_id = idc++;
@@ -4237,12 +4257,12 @@ void VisualScriptEditor::_menu_option(int p_what) {
 				undo_redo->add_undo_method(script.ptr(), "remove_node", default_func, new_id);
 			}
 
-			for (Set<VisualScript::SequenceConnection>::Element *E = clipboard->sequence_connections.front(); E; E = E->next()) {
+			for (RBSet<VisualScript::SequenceConnection>::Element *E = clipboard->sequence_connections.front(); E; E = E->next()) {
 				undo_redo->add_do_method(script.ptr(), "sequence_connect", default_func, remap[E->get().from_node], E->get().from_output, remap[E->get().to_node]);
 				undo_redo->add_undo_method(script.ptr(), "sequence_disconnect", default_func, remap[E->get().from_node], E->get().from_output, remap[E->get().to_node]);
 			}
 
-			for (Set<VisualScript::DataConnection>::Element *E = clipboard->data_connections.front(); E; E = E->next()) {
+			for (RBSet<VisualScript::DataConnection>::Element *E = clipboard->data_connections.front(); E; E = E->next()) {
 				undo_redo->add_do_method(script.ptr(), "data_connect", default_func, remap[E->get().from_node], E->get().from_port, remap[E->get().to_node], E->get().to_port);
 				undo_redo->add_undo_method(script.ptr(), "data_disconnect", default_func, remap[E->get().from_node], E->get().from_port, remap[E->get().to_node], E->get().to_port);
 			}
@@ -4262,8 +4282,8 @@ void VisualScriptEditor::_menu_option(int p_what) {
 		} break;
 		case EDIT_CREATE_FUNCTION: {
 			StringName function = "";
-			Map<int, Ref<VisualScriptNode>> nodes;
-			Set<int> selections;
+			RBMap<int, Ref<VisualScriptNode>> nodes;
+			RBSet<int> selections;
 			for (int i = 0; i < graph->get_child_count(); i++) {
 				GraphNode *gn = Object::cast_to<GraphNode>(graph->get_child(i));
 				if (gn) {
@@ -4292,14 +4312,14 @@ void VisualScriptEditor::_menu_option(int p_what) {
 				return; // nothing to be done if there are no valid nodes selected
 			}
 
-			Set<VisualScript::SequenceConnection> seqmove;
-			Set<VisualScript::DataConnection> datamove;
+			RBSet<VisualScript::SequenceConnection> seqmove;
+			RBSet<VisualScript::DataConnection> datamove;
 
-			Set<VisualScript::SequenceConnection> seqext;
-			Set<VisualScript::DataConnection> dataext;
+			RBSet<VisualScript::SequenceConnection> seqext;
+			RBSet<VisualScript::DataConnection> dataext;
 
 			int start_node = -1;
-			Set<int> end_nodes;
+			RBSet<int> end_nodes;
 			if (nodes.size() == 1) {
 				Ref<VisualScriptNode> nd = script->get_node(function, nodes.front()->key());
 				if (nd.is_valid() && nd->has_input_sequence_port()) {
@@ -4318,7 +4338,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 					// the user wants to connect the nodes
 					int top_nd = -1;
 					Vector2 top;
-					for (Map<int, Ref<VisualScriptNode>>::Element *E = nodes.front(); E; E = E->next()) {
+					for (RBMap<int, Ref<VisualScriptNode>>::Element *E = nodes.front(); E; E = E->next()) {
 						Ref<VisualScriptNode> nd = script->get_node(function, E->key());
 						if (nd.is_valid() && nd->has_input_sequence_port()) {
 							if (top_nd < 0) {
@@ -4341,8 +4361,8 @@ void VisualScriptEditor::_menu_option(int p_what) {
 					}
 				} else {
 					// pick the node with input sequence
-					Set<int> nodes_from;
-					Set<int> nodes_to;
+					RBSet<int> nodes_from;
+					RBSet<int> nodes_to;
 					for (List<VisualScript::SequenceConnection>::Element *E = seqs.front(); E; E = E->next()) {
 						if (nodes.has(E->get().from_node) && nodes.has(E->get().to_node)) {
 							seqmove.insert(E->get());
@@ -4368,7 +4388,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 						// if we still don't have a start node then
 						// run through the nodes and select the first tree node
 						// ie node without any input sequence but output sequence
-						for (Set<int>::Element *E = nodes_from.front(); E; E = E->next()) {
+						for (RBSet<int>::Element *E = nodes_from.front(); E; E = E->next()) {
 							if (!nodes_to.has(E->get())) {
 								start_node = E->get();
 							}
@@ -4425,7 +4445,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 
 			// Move the nodes
 
-			for (Map<int, Ref<VisualScriptNode>>::Element *E = nodes.front(); E; E = E->next()) {
+			for (RBMap<int, Ref<VisualScriptNode>>::Element *E = nodes.front(); E; E = E->next()) {
 				undo_redo->add_do_method(script.ptr(), "remove_node", function, E->key());
 				undo_redo->add_do_method(script.ptr(), "add_node", new_fn, E->key(), E->get(), script->get_node_position(function, E->key()));
 
@@ -4433,22 +4453,22 @@ void VisualScriptEditor::_menu_option(int p_what) {
 				undo_redo->add_undo_method(script.ptr(), "add_node", function, E->key(), E->get(), script->get_node_position(function, E->key()));
 			}
 
-			for (Set<VisualScript::SequenceConnection>::Element *E = seqmove.front(); E; E = E->next()) {
+			for (RBSet<VisualScript::SequenceConnection>::Element *E = seqmove.front(); E; E = E->next()) {
 				undo_redo->add_do_method(script.ptr(), "sequence_connect", new_fn, E->get().from_node, E->get().from_output, E->get().to_node);
 				undo_redo->add_undo_method(script.ptr(), "sequence_connect", function, E->get().from_node, E->get().from_output, E->get().to_node);
 			}
 
-			for (Set<VisualScript::DataConnection>::Element *E = datamove.front(); E; E = E->next()) {
+			for (RBSet<VisualScript::DataConnection>::Element *E = datamove.front(); E; E = E->next()) {
 				undo_redo->add_do_method(script.ptr(), "data_connect", new_fn, E->get().from_node, E->get().from_port, E->get().to_node, E->get().to_port);
 				undo_redo->add_undo_method(script.ptr(), "data_connect", function, E->get().from_node, E->get().from_port, E->get().to_node, E->get().to_port);
 			}
 
 			// Add undo for external connections as well so that it's easier to revert back and forth
 			// these didn't require do methods as it's already handled internally by other do calls
-			for (Set<VisualScript::SequenceConnection>::Element *E = seqext.front(); E; E = E->next()) {
+			for (RBSet<VisualScript::SequenceConnection>::Element *E = seqext.front(); E; E = E->next()) {
 				undo_redo->add_undo_method(script.ptr(), "sequence_connect", function, E->get().from_node, E->get().from_output, E->get().to_node);
 			}
-			for (Set<VisualScript::DataConnection>::Element *E = dataext.front(); E; E = E->next()) {
+			for (RBSet<VisualScript::DataConnection>::Element *E = dataext.front(); E; E = E->next()) {
 				undo_redo->add_undo_method(script.ptr(), "data_connect", function, E->get().from_node, E->get().from_port, E->get().to_node, E->get().to_port);
 			}
 
@@ -4457,7 +4477,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 
 			// end nodes are mapped to the return nodes with data connections if possible
 			int m = 1;
-			for (Set<int>::Element *G = end_nodes.front(); G; G = G->next()) {
+			for (RBSet<int>::Element *G = end_nodes.front(); G; G = G->next()) {
 				Ref<VisualScriptReturn> ret_node;
 				ret_node.instance();
 
@@ -4517,7 +4537,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 // this is likely going to be very slow and I am not sure if I should keep it
 // but I hope that it will not be a problem considering that we won't be creating functions so frequently
 // and cyclic connections would be a problem but hopefully we won't let them get to this point
-void VisualScriptEditor::_get_ends(int p_node, const List<VisualScript::SequenceConnection> &p_seqs, const Set<int> &p_selected, Set<int> &r_end_nodes) {
+void VisualScriptEditor::_get_ends(int p_node, const List<VisualScript::SequenceConnection> &p_seqs, const RBSet<int> &p_selected, RBSet<int> &r_end_nodes) {
 	for (const List<VisualScript::SequenceConnection>::Element *E = p_seqs.front(); E; E = E->next()) {
 		int from = E->get().from_node;
 		int to = E->get().to_node;
@@ -4544,9 +4564,9 @@ void VisualScriptEditor::_member_rmb_selected(const Vector2 &p_pos) {
 
 	TreeItem *root = members->get_root();
 
-	Ref<Texture> del_icon = Control::get_icon("Remove", "EditorIcons");
+	Ref<Texture> del_icon = get_editor_icon("Remove");
 
-	Ref<Texture> edit_icon = Control::get_icon("Edit", "EditorIcons");
+	Ref<Texture> edit_icon = get_editor_icon("Edit");
 
 	if (ti->get_parent() == root->get_children()) {
 		member_type = MEMBER_FUNCTION;
@@ -4664,10 +4684,10 @@ void VisualScriptEditor::_member_option(int p_option) {
 	}
 }
 
-void VisualScriptEditor::add_syntax_highlighter(SyntaxHighlighter *p_highlighter) {
+void VisualScriptEditor::add_syntax_highlighter(Ref<EditorSyntaxHighlighter> p_highlighter) {
 }
 
-void VisualScriptEditor::set_syntax_highlighter(SyntaxHighlighter *p_highlighter) {
+void VisualScriptEditor::set_syntax_highlighter(Ref<EditorSyntaxHighlighter> p_highlighter) {
 }
 
 void VisualScriptEditor::_bind_methods() {
@@ -4770,7 +4790,7 @@ VisualScriptEditor::VisualScriptEditor() {
 
 	members_section = memnew(VBoxContainer);
 	// Add but wait until done setting up this.
-	ScriptEditor::get_singleton()->get_left_list_split()->call_deferred("add_child", members_section);
+	EditorScriptEditor::get_singleton()->get_left_list_split()->call_deferred("add_child", members_section);
 	members_section->set_v_size_flags(SIZE_EXPAND_FILL);
 
 	CheckButton *tool_script_check = memnew(CheckButton);
@@ -4987,7 +5007,7 @@ VisualScriptEditor::~VisualScriptEditor() {
 	memdelete(variable_editor);
 }
 
-static ScriptEditorBase *create_editor(const RES &p_resource) {
+static EditorScriptEditorBase *create_editor(const RES &p_resource) {
 	if (Object::cast_to<VisualScript>(*p_resource)) {
 		return memnew(VisualScriptEditor);
 	}
@@ -5004,7 +5024,7 @@ void VisualScriptEditor::free_clipboard() {
 }
 
 static void register_editor_callback() {
-	ScriptEditor::register_create_script_editor_function(create_editor);
+	EditorScriptEditor::register_create_script_editor_function(create_editor);
 
 	ED_SHORTCUT("visual_script_editor/delete_selected", TTR("Delete Selected"), KEY_DELETE);
 	ED_SHORTCUT("visual_script_editor/toggle_breakpoint", TTR("Toggle Breakpoint"), KEY_F9);
@@ -5030,7 +5050,7 @@ Ref<VisualScriptNode> _VisualScriptEditor::create_node_custom(const String &p_na
 }
 
 _VisualScriptEditor *_VisualScriptEditor::singleton = nullptr;
-Map<String, RefPtr> _VisualScriptEditor::custom_nodes;
+RBMap<String, RefPtr> _VisualScriptEditor::custom_nodes;
 
 _VisualScriptEditor::_VisualScriptEditor() {
 	singleton = this;
@@ -5058,6 +5078,16 @@ void _VisualScriptEditor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_custom_node", "name", "category", "script"), &_VisualScriptEditor::add_custom_node);
 	ClassDB::bind_method(D_METHOD("remove_custom_node", "name", "category"), &_VisualScriptEditor::remove_custom_node);
 	ADD_SIGNAL(MethodInfo("custom_nodes_updated"));
+}
+
+_VisualScriptEditor *_VisualScriptEditor::get_singleton() {
+	return singleton;
+}
+
+void _VisualScriptEditor::initialize() {
+	if (!singleton) {
+		memnew(_VisualScriptEditor);
+	}
 }
 
 void VisualScriptEditor::validate() {

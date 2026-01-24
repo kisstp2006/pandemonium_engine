@@ -30,8 +30,9 @@
 
 #include "visual_shader.h"
 
-#include "core/vmap.h"
-#include "servers/visual/shader_types.h"
+#include "core/containers/vmap.h"
+#include "servers/rendering_server.h"
+#include "servers/rendering/shader_types.h"
 
 bool VisualShaderNode::is_simple_decl() const {
 	return simple_decl;
@@ -121,7 +122,7 @@ Vector<StringName> VisualShaderNode::get_editable_properties() const {
 
 Array VisualShaderNode::get_default_input_values() const {
 	Array ret;
-	for (Map<int, Variant>::Element *E = default_input_values.front(); E; E = E->next()) {
+	for (RBMap<int, Variant>::Element *E = default_input_values.front(); E; E = E->next()) {
 		ret.push_back(E->key());
 		ret.push_back(E->get());
 	}
@@ -406,7 +407,7 @@ Vector<int> VisualShader::get_node_list(Type p_type) const {
 	const Graph *g = &graph[p_type];
 
 	Vector<int> ret;
-	for (Map<int, Node>::Element *E = g->nodes.front(); E; E = E->next()) {
+	for (RBMap<int, Node>::Element *E = g->nodes.front(); E; E = E->next()) {
 		ret.push_back(E->key());
 	}
 
@@ -419,7 +420,7 @@ int VisualShader::get_valid_node_id(Type p_type) const {
 }
 
 int VisualShader::find_node_id(Type p_type, const Ref<VisualShaderNode> &p_node) const {
-	for (const Map<int, Node>::Element *E = graph[p_type].nodes.front(); E; E = E->next()) {
+	for (const RBMap<int, Node>::Element *E = graph[p_type].nodes.front(); E; E = E->next()) {
 		if (E->get().node == p_node) {
 			return E->key();
 		}
@@ -647,7 +648,7 @@ void VisualShader::set_mode(Mode p_mode) {
 	flags.clear();
 	shader_mode = p_mode;
 	for (int i = 0; i < TYPE_MAX; i++) {
-		for (Map<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
+		for (RBMap<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
 			Ref<VisualShaderNodeInput> input = E->get().node;
 			if (input.is_valid()) {
 				input->shader_mode = shader_mode;
@@ -720,15 +721,15 @@ String VisualShader::generate_preview_shader(Type p_type, int p_node, int p_port
 
 	StringBuilder global_code;
 	StringBuilder global_code_per_node;
-	Map<Type, StringBuilder> global_code_per_func;
+	RBMap<Type, StringBuilder> global_code_per_func;
 	StringBuilder code;
-	Set<StringName> classes;
+	RBSet<StringName> classes;
 
 	global_code += String() + "shader_type canvas_item;\n";
 
 	String global_expressions;
 	for (int i = 0, index = 0; i < TYPE_MAX; i++) {
-		for (Map<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
+		for (RBMap<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
 			Ref<VisualShaderNodeGlobalExpression> global_expression = Object::cast_to<VisualShaderNodeGlobalExpression>(E->get().node.ptr());
 			if (global_expression.is_valid()) {
 				String expr = "";
@@ -764,7 +765,7 @@ String VisualShader::generate_preview_shader(Type p_type, int p_node, int p_port
 
 	code += "\nvoid fragment() {\n";
 
-	Set<int> processed;
+	RBSet<int> processed;
 	Error err = _write_node(p_type, global_code, global_code_per_node, global_code_per_func, code, default_tex_params, input_connections, output_connections, p_node, processed, true, classes);
 	ERR_FAIL_COND_V(err != OK, String());
 
@@ -864,7 +865,7 @@ String VisualShader::validate_uniform_name(const String &p_name, const Ref<Visua
 	while (true) {
 		bool exists = false;
 		for (int i = 0; i < TYPE_MAX; i++) {
-			for (const Map<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
+			for (const RBMap<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
 				Ref<VisualShaderNodeUniform> node = E->get().node;
 				if (node == p_uniform) { //do not test on self
 					continue;
@@ -1054,11 +1055,11 @@ void VisualShader::_get_property_list(List<PropertyInfo> *p_list) const {
 	p_list->push_back(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Spatial,CanvasItem,Particles"));
 	//render modes
 
-	Map<String, String> blend_mode_enums;
-	Set<String> toggles;
+	RBMap<String, String> blend_mode_enums;
+	RBSet<String> toggles;
 
-	for (int i = 0; i < ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader_mode)).size(); i++) {
-		String mode = ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader_mode))[i];
+	for (int i = 0; i < ShaderTypes::get_singleton()->get_modes(RenderingServer::ShaderMode(shader_mode)).size(); i++) {
+		String mode = ShaderTypes::get_singleton()->get_modes(RenderingServer::ShaderMode(shader_mode))[i];
 		int idx = 0;
 		bool in_enum = false;
 		while (render_mode_enums[idx].string) {
@@ -1081,16 +1082,16 @@ void VisualShader::_get_property_list(List<PropertyInfo> *p_list) const {
 		}
 	}
 
-	for (Map<String, String>::Element *E = blend_mode_enums.front(); E; E = E->next()) {
+	for (RBMap<String, String>::Element *E = blend_mode_enums.front(); E; E = E->next()) {
 		p_list->push_back(PropertyInfo(Variant::INT, "modes/" + E->key(), PROPERTY_HINT_ENUM, E->get()));
 	}
 
-	for (Set<String>::Element *E = toggles.front(); E; E = E->next()) {
+	for (RBSet<String>::Element *E = toggles.front(); E; E = E->next()) {
 		p_list->push_back(PropertyInfo(Variant::BOOL, "flags/" + E->get()));
 	}
 
 	for (int i = 0; i < TYPE_MAX; i++) {
-		for (Map<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
+		for (RBMap<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
 			String prop_name = "nodes/";
 			prop_name += type_string[i];
 			prop_name += "/" + itos(E->key());
@@ -1113,7 +1114,7 @@ void VisualShader::_get_property_list(List<PropertyInfo> *p_list) const {
 	}
 }
 
-Error VisualShader::_write_node(Type type, StringBuilder &global_code, StringBuilder &global_code_per_node, Map<Type, StringBuilder> &global_code_per_func, StringBuilder &code, Vector<VisualShader::DefaultTextureParam> &def_tex_params, const VMap<ConnectionKey, const List<Connection>::Element *> &input_connections, const VMap<ConnectionKey, const List<Connection>::Element *> &output_connections, int node, Set<int> &processed, bool for_preview, Set<StringName> &r_classes) const {
+Error VisualShader::_write_node(Type type, StringBuilder &global_code, StringBuilder &global_code_per_node, RBMap<Type, StringBuilder> &global_code_per_func, StringBuilder &code, Vector<VisualShader::DefaultTextureParam> &def_tex_params, const VMap<ConnectionKey, const List<Connection>::Element *> &input_connections, const VMap<ConnectionKey, const List<Connection>::Element *> &output_connections, int node, RBSet<int> &processed, bool for_preview, RBSet<StringName> &r_classes) const {
 	const Ref<VisualShaderNode> vsnode = graph[type].nodes[node].node;
 
 	//check inputs recursively first
@@ -1316,10 +1317,10 @@ void VisualShader::_update_shader() const {
 
 	StringBuilder global_code;
 	StringBuilder global_code_per_node;
-	Map<Type, StringBuilder> global_code_per_func;
+	RBMap<Type, StringBuilder> global_code_per_func;
 	StringBuilder code;
 	Vector<VisualShader::DefaultTextureParam> default_tex_params;
-	Set<StringName> classes;
+	RBSet<StringName> classes;
 	List<int> insertion_pos;
 	static const char *shader_mode_str[Shader::MODE_MAX] = { "spatial", "canvas_item", "particles" };
 
@@ -1344,8 +1345,8 @@ void VisualShader::_update_shader() const {
 						which = modes[render_mode_enums[idx].string];
 					}
 					int count = 0;
-					for (int i = 0; i < ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader_mode)).size(); i++) {
-						String mode = ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader_mode))[i];
+					for (int i = 0; i < ShaderTypes::get_singleton()->get_modes(RenderingServer::ShaderMode(shader_mode)).size(); i++) {
+						String mode = ShaderTypes::get_singleton()->get_modes(RenderingServer::ShaderMode(shader_mode))[i];
 						if (mode.begins_with(render_mode_enums[idx].string)) {
 							if (count == which) {
 								if (render_mode != String()) {
@@ -1363,8 +1364,8 @@ void VisualShader::_update_shader() const {
 		}
 
 		//fill render mode flags
-		for (int i = 0; i < ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader_mode)).size(); i++) {
-			String mode = ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader_mode))[i];
+		for (int i = 0; i < ShaderTypes::get_singleton()->get_modes(RenderingServer::ShaderMode(shader_mode)).size(); i++) {
+			String mode = ShaderTypes::get_singleton()->get_modes(RenderingServer::ShaderMode(shader_mode))[i];
 			if (flags.has(mode)) {
 				if (render_mode != String()) {
 					render_mode += ", ";
@@ -1381,11 +1382,11 @@ void VisualShader::_update_shader() const {
 	static const char *func_name[TYPE_MAX] = { "vertex", "fragment", "light" };
 
 	String global_expressions;
-	Set<String> used_uniform_names;
+	RBSet<String> used_uniform_names;
 	List<VisualShaderNodeUniform *> uniforms;
 
 	for (int i = 0, index = 0; i < TYPE_MAX; i++) {
-		for (Map<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
+		for (RBMap<int, Node>::Element *E = graph[i].nodes.front(); E; E = E->next()) {
 			Ref<VisualShaderNodeGlobalExpression> global_expression = Object::cast_to<VisualShaderNodeGlobalExpression>(E->get().node.ptr());
 			if (global_expression.is_valid()) {
 				String expr = "";
@@ -1437,7 +1438,7 @@ void VisualShader::_update_shader() const {
 
 		code += "\nvoid " + String(func_name[i]) + "() {\n";
 
-		Set<int> processed;
+		RBSet<int> processed;
 		Error err = _write_node(Type(i), global_code, global_code_per_node, global_code_per_func, code, default_tex_params, input_connections, output_connections, NODE_ID_OUTPUT, processed, false, classes);
 		ERR_FAIL_COND(err != OK);
 		insertion_pos.push_back(code.get_string_length());

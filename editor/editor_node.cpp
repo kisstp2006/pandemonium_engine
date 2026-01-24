@@ -7210,15 +7210,9 @@ EditorNode::EditorNode() {
 	Engine::get_singleton()->add_global("EditorInterface", editor_interface);
 
 	//more visually meaningful to have this later
-<<<<<<< HEAD
 	raise_bottom_panel_item(AnimationPlayerEditor::get_singleton());
-=======
-	raise_bottom_panel_item(AnimationPlayerEditor::singleton);
 
-	add_editor_plugin(VersionControlEditorPlugin::get_singleton());
-	add_editor_plugin(memnew(ShaderEditorPlugin(this)));
 	add_editor_plugin(memnew(VisualShaderEditorPlugin(this)));
->>>>>>> parent of 84bd8ad20 (Removed VisualShaders.)
 
 	add_editor_plugin(memnew(CameraEditorPlugin(this)));
 	add_editor_plugin(memnew(ThemeEditorPlugin(this)));

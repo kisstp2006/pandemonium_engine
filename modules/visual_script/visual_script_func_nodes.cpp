@@ -30,9 +30,9 @@
 
 #include "visual_script_func_nodes.h"
 
-#include "core/engine.h"
+#include "core/config/engine.h"
 #include "core/io/resource_loader.h"
-#include "core/local_vector.h"
+#include "core/containers/local_vector.h"
 #include "core/os/os.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
