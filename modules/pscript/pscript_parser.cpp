@@ -2584,11 +2584,20 @@ void PScriptParser::_parse_block(BlockNode *p_block, bool p_static, bool p_consu
 				p_block->statements.push_back(cf_block);
 
 			} break;
+			case PScriptTokenizer::TK_PR_CONST:
+			case PScriptTokenizer::TK_PR_REF:
 			case PScriptTokenizer::TK_PR_VOID:
 			case PScriptTokenizer::TK_PR_VARIANT:
 			case PScriptTokenizer::TK_BUILT_IN_TYPE:
 			case PScriptTokenizer::TK_IDENTIFIER: {
 				// Variable declaration.
+
+				// Consume a single const kewyord
+				if (token == PScriptTokenizer::TK_PR_CONST) {
+					tokenizer->advance();
+
+					token = tokenizer->get_token();
+				}
 
 				if (token == PScriptTokenizer::TK_IDENTIFIER) {
 					PScriptTokenizer::Token lookahead = tokenizer->get_token(1);
@@ -4992,6 +5001,17 @@ void PScriptParser::_parse_class(ClassNode *p_class) {
 								continue;
 							}
 
+							// only once
+							bool const_was_consumed = false;
+							if (tokenizer->get_token() == PScriptTokenizer::TK_PR_CONST) {
+								tokenizer->advance();
+								const_was_consumed = true;
+
+								while (tokenizer->get_token() == PScriptTokenizer::TK_NEWLINE) {
+									tokenizer->advance();
+								}
+							}
+
 							DataType argtype;
 							if (!_parse_type(argtype, false, false)) {
 								_set_error("Expected a type for an argument.");
@@ -5000,6 +5020,13 @@ void PScriptParser::_parse_class(ClassNode *p_class) {
 							argument_types.push_back(argtype);
 
 							//tokenizer->advance();
+							if (const_was_consumed && tokenizer->get_token() == PScriptTokenizer::TK_OP_BIT_AND) {
+								tokenizer->advance();
+
+								while (tokenizer->get_token() == PScriptTokenizer::TK_NEWLINE) {
+									tokenizer->advance();
+								}
+							}
 
 							if (!tokenizer->is_token_literal(0, true)) {
 								_set_error("Expected an identifier for an argument.");
@@ -5070,6 +5097,18 @@ void PScriptParser::_parse_class(ClassNode *p_class) {
 					}
 
 					tokenizer->advance();
+
+					while (tokenizer->get_token() == PScriptTokenizer::TK_NEWLINE) {
+						tokenizer->advance();
+					}
+
+					if (tokenizer->get_token() == PScriptTokenizer::TK_PR_CONST) {
+						tokenizer->advance();
+
+						while (tokenizer->get_token() == PScriptTokenizer::TK_NEWLINE) {
+							tokenizer->advance();
+						}
+					}
 
 					BlockNode *block = alloc_node<BlockNode>();
 					block->parent_class = p_class;
@@ -5742,6 +5781,21 @@ bool PScriptParser::_parse_type(DataType &r_type, bool p_can_be_void, bool p_adv
 	bool can_index = false;
 	String full_name;
 
+	bool ref_was_consumed = false;
+
+	if (tokenizer->get_token() == PScriptTokenizer::TK_PR_REF) {
+		ref_was_consumed = true;
+
+		tokenizer->advance();
+
+		if (tokenizer->get_token() == PScriptTokenizer::TK_OP_LESS) {
+			tokenizer->advance();
+		} else {
+			_set_error("Expected '<' after Ref.");
+			return false;
+		}
+	}
+
 	if (tokenizer->get_token() == PScriptTokenizer::TK_CURSOR) {
 		completion_cursor = StringName();
 		if (p_both_virtual_and_type_autocomplete) {
@@ -5832,6 +5886,11 @@ bool PScriptParser::_parse_type(DataType &r_type, bool p_can_be_void, bool p_adv
 					if (can_index) {
 						//_set_error("Unexpected identifier.");
 
+						if (ref_was_consumed) {
+							_set_error("Missing '>' after Ref.");
+							return false;
+						}
+
 						r_type.native_type = full_name;
 						return true;
 					}
@@ -5861,6 +5920,15 @@ bool PScriptParser::_parse_type(DataType &r_type, bool p_can_be_void, bool p_adv
 		}
 
 		r_type.native_type = full_name;
+	}
+
+	if (ref_was_consumed) {
+		if (tokenizer->get_token() == PScriptTokenizer::TK_OP_GREATER) {
+			tokenizer->advance();
+		} else {
+			_set_error("Missing '>' after Ref.");
+			return false;
+		}
 	}
 
 	return true;
