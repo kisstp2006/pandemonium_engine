@@ -41,9 +41,3 @@ void _global_unlock() {
 	_global_mutex.unlock();
 }
 
-#ifndef NO_THREADS
-
-template class MutexImpl<std::recursive_mutex>;
-template class MutexImpl<std::mutex>;
-
-#endif

@@ -33,60 +33,22 @@
 /*************************************************************************/
 
 #include "core/error/error_list.h"
+#include "core/typedefs.h"
 
 #if !defined(NO_THREADS)
-
-#include <shared_mutex>
-
-class RWLock {
-	mutable std::shared_timed_mutex mutex;
-
-public:
-	// Lock the rwlock, block if locked by someone else
-	void read_lock() const {
-		mutex.lock_shared();
-	}
-
-	// Unlock the rwlock, let other threads continue
-	void read_unlock() const {
-		mutex.unlock_shared();
-	}
-
-	// Attempt to lock the rwlock, OK on success, ERR_BUSY means it can't lock.
-	Error read_try_lock() const {
-		return mutex.try_lock_shared() ? OK : ERR_BUSY;
-	}
-
-	// Lock the rwlock, block if locked by someone else
-	void write_lock() {
-		mutex.lock();
-	}
-
-	// Unlock the rwlock, let other thwrites continue
-	void write_unlock() {
-		mutex.unlock();
-	}
-
-	// Attempt to lock the rwlock, OK on success, ERR_BUSY means it can't lock.
-	Error write_try_lock() {
-		return mutex.try_lock() ? OK : ERR_BUSY;
-	}
-};
-
+#include "platform_rw_lock.h"
 #else
 
 class RWLock {
 public:
-	void read_lock() const {}
-	void read_unlock() const {}
-	Error read_try_lock() const { return OK; }
+	_FORCE_INLINE_ void read_lock() const {}
+	_FORCE_INLINE_ void read_unlock() const {}
+	_FORCE_INLINE_ Error read_try_lock() const { return OK; }
 
-	void write_lock() {}
-	void write_unlock() {}
-	Error write_try_lock() { return OK; }
+	_FORCE_INLINE_ void write_lock() {}
+	_FORCE_INLINE_ void write_unlock() {}
+	_FORCE_INLINE_ Error write_try_lock() { return OK; }
 };
-
-#endif
 
 class RWLockRead {
 	const RWLock &lock;
@@ -113,5 +75,7 @@ public:
 		lock.write_unlock();
 	}
 };
+
+#endif
 
 #endif // RWLOCK_H
