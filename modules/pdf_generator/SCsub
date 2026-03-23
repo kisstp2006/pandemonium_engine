@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+
+import os
+
+Import('env')
+Import("env_modules")
+
+env_pdf = env_modules.Clone()
+
+# Thirdparty source files
+
+thirdparty_obj = []
+
+# Not unbundled for now as they are not commonly available as shared library
+thirdparty_include_dir = "libharu/include/"
+thirdparty_src_dir = "libharu/src/"
+
+#env_pdf.disable_warnings()
+env_pdf.add_source_files(thirdparty_obj, thirdparty_src_dir + "*.c")
+env_pdf.Prepend(CPPPATH=[thirdparty_include_dir])
+env_pdf.Prepend(CPPPATH=["#thirdparty/libpng/"])
+
+env.modules_sources += thirdparty_obj
+
+# Module
+module_env = env.Clone()
+
+module_env.Prepend(CPPPATH=[thirdparty_include_dir])
+
+sources = [
+    "register_types.cpp",
+
+    "pdf_document.cpp",
+    "pdf_page.cpp",
+    "pdf_font.cpp",
+    "pdf_image.cpp",
+    "pdf_outline.cpp",
+    "pdf_destination.cpp",
+    "pdf_annotation.cpp",
+    "pdf_3d_measure.cpp",
+    "pdf_embedded_file.cpp",
+    "pdf_ex_data.cpp",
+    "pdf_ext_g_state.cpp",
+    "pdf_shading.cpp",
+    "pdf_x_object.cpp",
+    "pdf_encoder.cpp",
+    "pdf_dict.cpp",
+    "pdf_date.cpp",
+    "pdf_dash_mode.cpp",
+    "pdf_3d_view.cpp",
+    "pdf_3d_view_node.cpp",
+    "pdf_javascript.cpp",
+    "pdf_u3d.cpp",
+]
+
+if ARGUMENTS.get('custom_modules_shared', 'no') == 'yes':
+    # Shared lib compilation
+    module_env.Append(CCFLAGS=['-fPIC'])
+    module_env['LIBS'] = []
+    shared_lib = module_env.SharedLibrary(target='#bin/pdf_generator', source=sources)
+    shared_lib_shim = shared_lib[0].name.rsplit('.', 1)[0]
+    env.Append(LIBS=[shared_lib_shim])
+    env.Append(LIBPATH=['#bin'])
+else:
+    # Static compilation
+    module_env.add_source_files(env.modules_sources, sources)
+

@@ -191,17 +191,6 @@ However some third party modules might need higher c++ standard. At first they w
 Note that this would only be an extremely minor break, and only for engine modules. Also they would only need to specify
 a different c++ version in their SCSub file (for which there are plenty of examples).
 
-### CScript
-
-Implement and enable CScript. CScript will be a scripting language similar to gdscript, but
-it will use a C-style syntax.
-
-It would be extremely cool if it could just interpret engine module c++ directly, but that
-might be a bit too much. Maybe that could be an another module. For this to work, solving .cpp and header
-file separation are the biggest problem in my opinion due to how the engine works internally. Other than this
-it's mostly just parsing (not trivial, but relatively simple in the grand scheme of things).
-(Note that having the codebase use c++03 also helps with this!)
-
 ### MarkdownLabel
 
 A RichTextLabel, but for markdown would be nice to have.
@@ -245,61 +234,23 @@ It should also look at least acceptable.
 
 Add multi window support for the engine.
 
-Should oly add very little code and practically zero complexity.
+Being able to open more windows should only add very little code and practically zero complexity by itself.
 
 The issue is popups. Inheriting them from a Window (Viewport) class is incredibly inefficient,
 and custom handling for them will be extremely messy. A good solution for this is going to be needed.
 
-Currently my best idea is to have 2 sets of popups, and the user can decide whether to have multi window support
-or not by using the proper ones. Still trying to figure out a way to make this simpler.
+Likely the proper solution:
 
-Or the ClassDB could also switch between classes similar to how compat classes work.
-This does have issues.
+Have an another set of popups in an engine module, so they can be disabled if not used.
 
-Or a pseudo-viewport + maybe pesudo Window class could be added, and just make  all the code handle it.
+WindowedPopup etc...
 
-Could also be inherited from Viewport or viewport could inherit from it, but it's ignored if disabled, also it does not allocate anything if disabled.
+Have them inherit from Window, if windowing is enabled, and Control if it's disabled,
+So no performance penalty on platfroms with no windowing.
 
-Or Viewports could have an enabled property or similar, but that's prbably going to cause issues.
+Could force windowing support for them to be disabled at compile time even if a platform can do windowing.
 
-### TypedArray, PackedTypedArray
-
-2 new Variant types that stores an aray of elements of any single type.
-
-WIP:
-
-- The PackedTypedArray internals need to be tested properly.
-- Needs to be added to the docs repo when finished.
-
-Few syntax ideas:
-
-- export(TypedArray, Type)
-- export(TypedArray[Type])
-- export(TypedArray&lt;Type&gt;)
-
-- var a : TypedArray(Type) = TypedArray(Type)
-- var a : TypedArray[Type] = TypedArray[Type]()
-- var a : TypedArray&lt;Type&gt; = TypedArray&lt;Type&gt;()
-
-Maybe in place creation?
-
-- ... = TypedArray[Type][ 1, 2, 3, 4, ... ]
-- ... = TypedArray&lt;Type&gt;[ 1, 2, 3, 4, ... ]
-- ... = TypedArray(Type, 1, 2, 3, 4, ... )
-
-No, Typed Array holds it's allowed types. None of these are needed.
-
-Also this version does not give the false sense that the type is immutable.
-(Even if it was, a class could replace the array with an another one, then
-the property would return that.)
-
-- export(TypedArray) var a : TypedArray = TypedArray("Type")
-- export(TypedArray) var a : TypedArray = TypedArray(Type) - Gdscript could parse this too.
-- ... = TypedArray([ 1, 2, 3, 4, ... ]) - automatically gets the type from the first element
-- ... = TypedArray("Type", [ 1, 2, 3, 4, ... ]) - Sets up the type, then tries to grab everything from array
-- ... = TypedArray(Type, [ 1, 2, 3, 4, ... ]) - GDScript could parse this too
-
-It doesn't need property hints either. What the properties return is going to be used.
+Their api does not need to match the built in popups exactly.
 
 ### WebNodes
 
