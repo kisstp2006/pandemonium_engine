@@ -34,27 +34,26 @@
 
 #include "core/object/reference.h"
 
+class PDF3DMeasure;
+
 class PDFExData : public Reference {
 	GDCLASS(PDFExData, Reference);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_3DAnnotExData_Set3DMeasurement(HPDF_ExData exdata, HPDF_3DMeasure measure);
-#endif
+	uint32_t set_3d_measurement(const Ref<PDF3DMeasure> &p_measure);
 
 	uint32_t get_status();
 
 	PDFExData();
 	~PDFExData();
 
-	void *_get_hpdf_font() const;
-	void _set_hpdf_font(void *p_font);
+	void *_get_hpdf_ex_data() const;
+	void _set_hpdf_ex_data(void *p_ex_data);
 
 protected:
 	static void _bind_methods();
 
-	void *_font;
+	void *_ex_data;
 
 	uint32_t _status;
 };

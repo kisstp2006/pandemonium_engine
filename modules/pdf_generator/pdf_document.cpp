@@ -88,6 +88,7 @@ Ref<PDFPage> PDFDocument::page_get_current() {
 	page.instance();
 
 	page->_set_hpdf_page(hpdf_page);
+	page->_set_document(Ref<PDFDocument>(this));
 
 	return page;
 }
@@ -102,6 +103,7 @@ Ref<PDFPage> PDFDocument::page_get_index(const uint32_t p_index) {
 	page.instance();
 
 	page->_set_hpdf_page(hpdf_page);
+	page->_set_document(Ref<PDFDocument>(this));
 
 	return page;
 }
@@ -116,6 +118,7 @@ Ref<PDFPage> PDFDocument::page_add() {
 	page.instance();
 
 	page->_set_hpdf_page(hpdf_page);
+	page->_set_document(Ref<PDFDocument>(this));
 
 	return page;
 }
@@ -134,6 +137,7 @@ Ref<PDFPage> PDFDocument::page_insert(const Ref<PDFPage> &p_page) {
 	page.instance();
 
 	page->_set_hpdf_page(hpdf_page);
+	page->_set_document(Ref<PDFDocument>(this));
 
 	return page;
 }
@@ -373,9 +377,9 @@ Ref<PDFXObject> PDFDocument::x_object_create_from_image(const Ref<PDFPage> &p_pa
 	HPDF_Rect rect;
 	Vector2 end = p_rect.get_end();
 	rect.left = p_rect.position.x;
-	rect.top = p_rect.position.y;
+	rect.bottom = p_rect.position.y;
 	rect.right = end.x;
-	rect.bottom = end.y;
+	rect.top = end.y;
 
 	HPDF_Image image = NULL;
 
@@ -406,9 +410,9 @@ Ref<PDFXObject> PDFDocument::x_object_create_as_white_rect(const Ref<PDFPage> &p
 	HPDF_Rect rect;
 	Vector2 end = p_rect.get_end();
 	rect.left = p_rect.position.x;
-	rect.top = p_rect.position.y;
+	rect.bottom = p_rect.position.y;
 	rect.right = end.x;
-	rect.bottom = end.y;
+	rect.top = end.y;
 
 	HPDF_XObject hpdf_xobject = HPDF_Page_CreateXObjectAsWhiteRect(_doc, page, rect);
 
@@ -469,6 +473,22 @@ Ref<PDFImage> PDFDocument::image_load_png_from_file(const String &p_path) {
 	String abs_path = FileAccess::get_filesystem_abspath_for(p_path);
 
 	HPDF_Font hpdf_image = HPDF_LoadPngImageFromFile(_doc, abs_path.utf8().get_data());
+
+	if (!hpdf_image) {
+		return Ref<PDFImage>();
+	}
+
+	Ref<PDFImage> image;
+	image.instance();
+
+	image->_set_hpdf_image(hpdf_image);
+
+	return image;
+}
+Ref<PDFImage> PDFDocument::image_load_png_from_file_delayed(const String &p_path) {
+	String abs_path = FileAccess::get_filesystem_abspath_for(p_path);
+
+	HPDF_Font hpdf_image = HPDF_LoadPngImageFromFile2(_doc, abs_path.utf8().get_data());
 
 	if (!hpdf_image) {
 		return Ref<PDFImage>();
@@ -822,8 +842,6 @@ Ref<PDF3DView> PDFDocument::create_3d_view(const String &p_name) {
 }
 
 PoolByteArray PDFDocument::save_to_mem() {
-	HPDF_ResetStream(_doc);
-
 	_status = HPDF_SaveToStream(_doc);
 
 	if (_status != HPDF_OK) {
@@ -892,6 +910,8 @@ void PDFDocument::reset_error() {
 }
 
 PDFDocument::PDFDocument() {
+	_status = 0;
+
 	_doc = HPDF_New(NULL, NULL);
 
 	if (!_doc) {
@@ -938,7 +958,7 @@ void PDFDocument::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("font_load_type_1_from_file", "afm_file_name", "data_file_name"), &PDFDocument::font_load_type_1_from_file);
 	ClassDB::bind_method(D_METHOD("font_load_ttf_from_file", "file_name", "embed_into_document"), &PDFDocument::font_load_ttf_from_file);
-	ClassDB::bind_method(D_METHOD("font_load_ttf_from_collection_file", "index", "embed_into_document"), &PDFDocument::font_load_ttf_from_collection_file);
+	ClassDB::bind_method(D_METHOD("font_load_ttf_from_collection_file", "file_name", "index", "embed_into_document"), &PDFDocument::font_load_ttf_from_collection_file);
 	ClassDB::bind_method(D_METHOD("font_load_ttf_from_mem", "data", "embed_into_document"), &PDFDocument::font_load_ttf_from_mem);
 
 	ClassDB::bind_method(D_METHOD("fonts_use_jp"), &PDFDocument::fonts_use_jp);
@@ -971,6 +991,7 @@ void PDFDocument::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("image_load_png_from_mem", "data"), &PDFDocument::image_load_png_from_mem);
 	ClassDB::bind_method(D_METHOD("image_load_png_from_file", "path"), &PDFDocument::image_load_png_from_file);
+	ClassDB::bind_method(D_METHOD("image_load_png_from_file_delayed", "path"), &PDFDocument::image_load_png_from_file_delayed);
 
 	ClassDB::bind_method(D_METHOD("image_load_jpg_from_mem", "data"), &PDFDocument::image_load_jpg_from_mem);
 	ClassDB::bind_method(D_METHOD("image_load_jpg_from_file", "path"), &PDFDocument::image_load_jpg_from_file);
@@ -981,6 +1002,10 @@ void PDFDocument::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("image_load_raw_image_from_file", "path", "size", "color_space"), &PDFDocument::image_load_raw_image_from_file);
 
 	ClassDB::bind_method(D_METHOD("image_create_pdf_from_image", "image"), &PDFDocument::image_create_pdf_from_image);
+
+	ClassDB::bind_method(D_METHOD("info_attr_get", "info_typ"), &PDFDocument::info_attr_get);
+	ClassDB::bind_method(D_METHOD("info_attr_set", "info_type", "value"), &PDFDocument::info_attr_set);
+	ClassDB::bind_method(D_METHOD("info_attr_date_set", "info_type", "date"), &PDFDocument::info_attr_date_set);
 
 	ClassDB::bind_method(D_METHOD("password_set", "owner_passwd", "user_passwd"), &PDFDocument::password_set);
 	ClassDB::bind_method(D_METHOD("permission_set", "permission"), &PDFDocument::permission_set);
@@ -1076,4 +1101,120 @@ void PDFDocument::_bind_methods() {
 
 	BIND_ENUM_CONSTANT(ENCRYPT_MODE_R2);
 	BIND_ENUM_CONSTANT(ENCRYPT_MODE_R3);
+
+	BIND_ENUM_CONSTANT(EC_ARRAY_COUNT_ERR);
+	BIND_ENUM_CONSTANT(EC_ARRAY_ITEM_NOT_FOUND);
+	BIND_ENUM_CONSTANT(EC_ARRAY_ITEM_UNEXPECTED_TYPE);
+	BIND_ENUM_CONSTANT(EC_BINARY_LENGTH_ERR);
+	BIND_ENUM_CONSTANT(EC_CANNOT_GET_PALLET);
+	BIND_ENUM_CONSTANT(EC_DICT_COUNT_ERR);
+	BIND_ENUM_CONSTANT(EC_DICT_ITEM_NOT_FOUND);
+	BIND_ENUM_CONSTANT(EC_DICT_ITEM_UNEXPECTED_TYPE);
+	BIND_ENUM_CONSTANT(EC_DICT_STREAM_LENGTH_NOT_FOUND);
+	BIND_ENUM_CONSTANT(EC_DOC_ENCRYPTDICT_NOT_FOUND);
+	BIND_ENUM_CONSTANT(EC_DOC_INVALID_OBJECT);
+	BIND_ENUM_CONSTANT(EC_DUPLICATE_REGISTRATION);
+	BIND_ENUM_CONSTANT(EC_EXCEED_JWW_CODE_NUM_LIMIT);
+	BIND_ENUM_CONSTANT(EC_ENCRYPT_INVALID_PASSWORD);
+	BIND_ENUM_CONSTANT(EC_ERR_UNKNOWN_CLASS);
+	BIND_ENUM_CONSTANT(EC_EXCEED_GSTATE_LIMIT);
+	BIND_ENUM_CONSTANT(EC_FAILED_TO_ALLOC_MEM);
+	BIND_ENUM_CONSTANT(EC_FILE_IO_ERROR);
+	BIND_ENUM_CONSTANT(EC_FILE_OPEN_ERROR);
+	BIND_ENUM_CONSTANT(EC_FONT_EXISTS);
+	BIND_ENUM_CONSTANT(EC_FONT_INVALID_WIDTHS_TABLE);
+	BIND_ENUM_CONSTANT(EC_INVALID_AFM_HEADER);
+	BIND_ENUM_CONSTANT(EC_INVALID_ANNOTATION);
+	BIND_ENUM_CONSTANT(EC_INVALID_BIT_PER_COMPONENT);
+	BIND_ENUM_CONSTANT(EC_INVALID_CHAR_MATRICS_DATA);
+	BIND_ENUM_CONSTANT(EC_INVALID_COLOR_SPACE);
+	BIND_ENUM_CONSTANT(EC_INVALID_COMPRESSION_MODE);
+	BIND_ENUM_CONSTANT(EC_INVALID_DATE_TIME);
+	BIND_ENUM_CONSTANT(EC_INVALID_DESTINATION);
+	BIND_ENUM_CONSTANT(EC_INVALID_DOCUMENT);
+	BIND_ENUM_CONSTANT(EC_INVALID_DOCUMENT_STATE);
+	BIND_ENUM_CONSTANT(EC_INVALID_ENCODER);
+	BIND_ENUM_CONSTANT(EC_INVALID_ENCODER_TYPE);
+	BIND_ENUM_CONSTANT(EC_INVALID_ENCODING_NAME);
+	BIND_ENUM_CONSTANT(EC_INVALID_ENCRYPT_KEY_LEN);
+	BIND_ENUM_CONSTANT(EC_INVALID_FONTDEF_DATA);
+	BIND_ENUM_CONSTANT(EC_INVALID_FONTDEF_TYPE);
+	BIND_ENUM_CONSTANT(EC_INVALID_FONT_NAME);
+	BIND_ENUM_CONSTANT(EC_INVALID_IMAGE);
+	BIND_ENUM_CONSTANT(EC_INVALID_JPEG_DATA);
+	BIND_ENUM_CONSTANT(EC_INVALID_N_DATA);
+	BIND_ENUM_CONSTANT(EC_INVALID_OBJECT);
+	BIND_ENUM_CONSTANT(EC_INVALID_OBJ_ID);
+	BIND_ENUM_CONSTANT(EC_INVALID_OPERATION);
+	BIND_ENUM_CONSTANT(EC_INVALID_OUTLINE);
+	BIND_ENUM_CONSTANT(EC_INVALID_PAGE);
+	BIND_ENUM_CONSTANT(EC_INVALID_PAGES);
+	BIND_ENUM_CONSTANT(EC_INVALID_PARAMETER);
+	BIND_ENUM_CONSTANT(EC_INVALID_PNG_IMAGE);
+	BIND_ENUM_CONSTANT(EC_INVALID_STREAM);
+	BIND_ENUM_CONSTANT(EC_MISSING_FILE_NAME_ENTRY);
+	BIND_ENUM_CONSTANT(EC_INVALID_TTC_FILE);
+	BIND_ENUM_CONSTANT(EC_INVALID_TTC_INDEX);
+	BIND_ENUM_CONSTANT(EC_INVALID_WX_DATA);
+	BIND_ENUM_CONSTANT(EC_ITEM_NOT_FOUND);
+	BIND_ENUM_CONSTANT(EC_LIBPNG_ERROR);
+	BIND_ENUM_CONSTANT(EC_NAME_INVALID_VALUE);
+	BIND_ENUM_CONSTANT(EC_NAME_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_PARAM_COUNT);
+	BIND_ENUM_CONSTANT(EC_PAGES_MISSING_KIDS_ENTRY);
+	BIND_ENUM_CONSTANT(EC_PAGE_CANNOT_FIND_OBJECT);
+	BIND_ENUM_CONSTANT(EC_PAGE_CANNOT_GET_ROOT_PAGES);
+	BIND_ENUM_CONSTANT(EC_PAGE_CANNOT_RESTORE_GSTATE);
+	BIND_ENUM_CONSTANT(EC_PAGE_CANNOT_SET_PARENT);
+	BIND_ENUM_CONSTANT(EC_PAGE_FONT_NOT_FOUND);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_FONT);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_FONT_SIZE);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_GMODE);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_INDEX);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_ROTATE_VALUE);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_SIZE);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_XOBJECT);
+	BIND_ENUM_CONSTANT(EC_PAGE_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_REAL_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_STREAM_EOF);
+	BIND_ENUM_CONSTANT(EC_STREAM_READLN_CONTINUE);
+	BIND_ENUM_CONSTANT(EC_STRING_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_THIS_FUNC_WAS_SKIPPED);
+	BIND_ENUM_CONSTANT(EC_TTF_CANNOT_EMBEDDING_FONT);
+	BIND_ENUM_CONSTANT(EC_TTF_INVALID_CMAP);
+	BIND_ENUM_CONSTANT(EC_TTF_INVALID_FOMAT);
+	BIND_ENUM_CONSTANT(EC_TTF_MISSING_TABLE);
+	BIND_ENUM_CONSTANT(EC_UNSUPPORTED_FONT_TYPE);
+	BIND_ENUM_CONSTANT(EC_UNSUPPORTED_FUNC);
+	BIND_ENUM_CONSTANT(EC_UNSUPPORTED_JPEG_FORMAT);
+	BIND_ENUM_CONSTANT(EC_UNSUPPORTED_TYPE1_FONT);
+	BIND_ENUM_CONSTANT(EC_XREF_COUNT_ERR);
+	BIND_ENUM_CONSTANT(EC_ZLIB_ERROR);
+	BIND_ENUM_CONSTANT(EC_INVALID_PAGE_INDEX);
+	BIND_ENUM_CONSTANT(EC_INVALID_URI);
+	BIND_ENUM_CONSTANT(EC_PAGE_LAYOUT_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_PAGE_MODE_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_PAGE_NUM_STYLE_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_ANNOT_INVALID_ICON);
+	BIND_ENUM_CONSTANT(EC_ANNOT_INVALID_BORDER_STYLE);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_DIRECTION);
+	BIND_ENUM_CONSTANT(EC_INVALID_FONT);
+	BIND_ENUM_CONSTANT(EC_PAGE_INSUFFICIENT_SPACE);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_DISPLAY_TIME);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_TRANSITION_TIME);
+	BIND_ENUM_CONSTANT(EC_INVALID_PAGE_SLIDESHOW_TYPE);
+	BIND_ENUM_CONSTANT(EC_EXT_GSTATE_OUT_OF_RANGE);
+	BIND_ENUM_CONSTANT(EC_INVALID_EXT_GSTATE);
+	BIND_ENUM_CONSTANT(EC_EXT_GSTATE_READ_ONLY);
+	BIND_ENUM_CONSTANT(EC_INVALID_U3D_DATA);
+	BIND_ENUM_CONSTANT(EC_NAME_CANNOT_GET_NAMES);
+	BIND_ENUM_CONSTANT(EC_INVALID_ICC_COMPONENT_NUM);
+	BIND_ENUM_CONSTANT(EC_PAGE_INVALID_BOUNDARY);
+	BIND_ENUM_CONSTANT(EC_INVALID_SHADING_TYPE);
+
+	BIND_CONSTANT(PERMISSION_ENABLE_READ);
+	BIND_CONSTANT(PERMISSION_ENABLE_PRINT);
+	BIND_CONSTANT(PERMISSION_ENABLE_EDIT_ALL);
+	BIND_CONSTANT(PERMISSION_ENABLE_COPY);
+	BIND_CONSTANT(PERMISSION_ENABLE_EDIT);
 }

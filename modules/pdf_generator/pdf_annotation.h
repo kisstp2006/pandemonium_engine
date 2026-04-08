@@ -34,32 +34,29 @@
 
 #include "core/object/reference.h"
 
+class PDF3DView;
+class PDFJavascript;
+class PDFDate;
+class PDFExData;
+
 class PDFAnnotation : public Reference {
 	GDCLASS(PDFAnnotation, Reference);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Annot_SetRGBColor(HPDF_Annotation annot, HPDF_RGBColor color);
+	enum BorderStyleSubtype {
+		BORDER_STYLE_SOLID,
+		BORDER_STYLE_DASHED,
+		BORDER_STYLE_BEVELED,
+		BORDER_STYLE_INSET,
+		BORDER_STYLE_UNDERLINED
+	};
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Annot_SetCMYKColor(HPDF_Annotation annot, HPDF_CMYKColor color);
+	uint32_t set_rgb_color(const Color &p_color);
+	uint32_t set_cmyk_color(const Vector4 &p_color);
+	uint32_t set_gray_color(const float p_color);
+	uint32_t set_no_color();
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Annot_SetGrayColor(HPDF_Annotation annot, HPDF_REAL color);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Annot_SetNoColor(HPDF_Annotation annot);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Annotation_SetBorderStyle(HPDF_Annotation annot,
-			HPDF_BSSubtype subtype,
-			HPDF_REAL width,
-			HPDF_UINT16 dash_on,
-			HPDF_UINT16 dash_off,
-			HPDF_UINT16 dash_phase);
-
-#endif
+	uint32_t set_border_style(const BorderStyleSubtype p_sub_type, const float p_width, const uint16_t p_dash_on, const uint16_t p_dash_off, const uint16_t p_dash_phase);
 
 	uint32_t get_status();
 
@@ -77,31 +74,92 @@ protected:
 	uint32_t _status;
 };
 
+VARIANT_ENUM_CAST(PDFAnnotation::BorderStyleSubtype);
+
 class PDFAnnotation3D : public PDFAnnotation {
 	GDCLASS(PDFAnnotation3D, PDFAnnotation);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Annot_Set3DView(HPDF_MMgr mmgr,
-			HPDF_Annotation annot,
-			HPDF_Annotation annot3d,
-			HPDF_Dict view);
-#endif
+	uint32_t set_3d_view(const Ref<PDFAnnotation> &p_annot, const Ref<PDF3DView> &p_view);
 
 	PDFAnnotation3D();
 	~PDFAnnotation3D();
+
+	void _set_page(void *p_hdpf_page);
+
+protected:
+	static void _bind_methods();
+
+	void *_hdpf_page;
+};
+
+class PDFAnnotationPopup : public PDFAnnotation {
+	GDCLASS(PDFAnnotationPopup, PDFAnnotation);
+
+public:
+	uint32_t set_opened(const bool p_opened);
+
+	PDFAnnotationPopup();
+	~PDFAnnotationPopup();
 
 protected:
 	static void _bind_methods();
 };
 
-class PDFAnnotationText : public PDFAnnotation {
-	GDCLASS(PDFAnnotationText, PDFAnnotation);
+class PDFAnnotationMarkup : public PDFAnnotation {
+	GDCLASS(PDFAnnotationMarkup, PDFAnnotation);
 
 public:
-#if 0
-#endif
+	enum AnnotIntent {
+		ANNOT_INTENT_FREETEXTCALLOUT = 0,
+		ANNOT_INTENT_FREETEXTTYPEWRITER,
+		ANNOT_INTENT_LINEARROW,
+		ANNOT_INTENT_LINEDIMENSION,
+		ANNOT_INTENT_POLYGONCLOUD,
+		ANNOT_INTENT_POLYLINEDIMENSION,
+		ANNOT_INTENT_POLYGONDIMENSION
+	};
+
+	uint32_t set_title(const String &p_title);
+	uint32_t set_subject(const String &p_subject);
+	uint32_t set_creation_date(const Ref<PDFDate> &p_date);
+	uint32_t set_transparency(const float p_value);
+	uint32_t set_intent(const AnnotIntent p_intent);
+	uint32_t set_popup(const Ref<PDFAnnotationPopup> &p_popup);
+	uint32_t set_rect_diff(const Rect2 &p_rect);
+	uint32_t set_cloud_effect(const int p_value);
+
+	uint32_t set_interior_rgb_color(const Color &p_color);
+	uint32_t set_interior_cmyk_color(const Vector4 &p_color);
+	uint32_t set_interior_gray_color(const float p_color);
+	uint32_t set_interior_transparent();
+
+	PDFAnnotationMarkup();
+	~PDFAnnotationMarkup();
+
+protected:
+	static void _bind_methods();
+};
+
+VARIANT_ENUM_CAST(PDFAnnotationMarkup::AnnotIntent);
+
+class PDFAnnotationText : public PDFAnnotationMarkup {
+	GDCLASS(PDFAnnotationText, PDFAnnotationMarkup);
+
+public:
+	enum AnnotIcon {
+		ICON_COMMENT = 0,
+		ICON_KEY,
+		ICON_NOTE,
+		ICON_HELP,
+		ICON_NEW_PARAGRAPH,
+		ICON_PARAGRAPH,
+		ICON_INSERT,
+		ICON_EOF
+	};
+
+	uint32_t set_icon(const AnnotIcon p_icon);
+	uint32_t set_opened(const bool p_opened);
 
 	PDFAnnotationText();
 	~PDFAnnotationText();
@@ -110,50 +168,55 @@ protected:
 	static void _bind_methods();
 };
 
-class PDFAnnotationFreeText : public PDFAnnotation {
-	GDCLASS(PDFAnnotationFreeText, PDFAnnotation);
+VARIANT_ENUM_CAST(PDFAnnotationText::AnnotIcon);
+
+class PDFAnnotationLine : public PDFAnnotationMarkup {
+	GDCLASS(PDFAnnotationLine, PDFAnnotationMarkup);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_FreeTextAnnot_SetLineEndingStyle(HPDF_Annotation annot, HPDF_LineAnnotEndingStyle startStyle, HPDF_LineAnnotEndingStyle endStyle);
+	enum LineAnnotEndingStyle {
+		LINE_ANNOT_NONE = 0,
+		LINE_ANNOT_SQUARE,
+		LINE_ANNOT_CIRCLE,
+		LINE_ANNOT_DIAMOND,
+		LINE_ANNOT_OPENARROW,
+		LINE_ANNOT_CLOSEDARROW,
+		LINE_ANNOT_BUTT,
+		LINE_ANNOT_ROPENARROW,
+		LINE_ANNOT_RCLOSEDARROW,
+		LINE_ANNOT_SLASH
+	};
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_FreeTextAnnot_Set3PointCalloutLine(HPDF_Annotation annot, HPDF_Point startPoint, HPDF_Point kneePoint, HPDF_Point endPoint); /* Callout line will be in default user space */
+	enum LineAnnotCapPosition {
+		LINE_ANNOT_CAP_INLINE = 0,
+		LINE_ANNOT_CAP_TOP
+	};
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_FreeTextAnnot_Set2PointCalloutLine(HPDF_Annotation annot, HPDF_Point startPoint, HPDF_Point endPoint); /* Callout line will be in default user space */
+	uint32_t set_position(const Vector2 &p_start_point, const LineAnnotEndingStyle p_start_style, const Vector2 &p_end_point, const LineAnnotEndingStyle p_end_style);
+	uint32_t set_leader(const int p_leader_length, const int p_leader_ext_length, const int p_leader_offset_length);
+	uint32_t set_caption(bool p_show_caption, const LineAnnotCapPosition p_position, const int p_horizontal_offset, const int p_vertical_offset);
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_FreeTextAnnot_SetDefaultStyle(HPDF_Annotation annot, const char *style);
-#endif
-
-	PDFAnnotationFreeText();
-	~PDFAnnotationFreeText();
+	PDFAnnotationLine();
+	~PDFAnnotationLine();
 
 protected:
 	static void _bind_methods();
 };
 
-class PDFAnnotationLine : public PDFAnnotation {
-	GDCLASS(PDFAnnotationLine, PDFAnnotation);
+VARIANT_ENUM_CAST(PDFAnnotationLine::LineAnnotEndingStyle);
+VARIANT_ENUM_CAST(PDFAnnotationLine::LineAnnotCapPosition);
+
+class PDFAnnotationFreeText : public PDFAnnotationMarkup {
+	GDCLASS(PDFAnnotationFreeText, PDFAnnotationMarkup);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_LineAnnot_SetPosition(HPDF_Annotation annot,
-			HPDF_Point startPoint, HPDF_LineAnnotEndingStyle startStyle,
-			HPDF_Point endPoint, HPDF_LineAnnotEndingStyle endStyle);
+	uint32_t set_line_ending_style(const PDFAnnotationLine::LineAnnotEndingStyle p_start_style, const PDFAnnotationLine::LineAnnotEndingStyle p_end_style);
+	uint32_t set_3_point_callout_line(const Vector2 &p_start_point, const Vector2 &p_knee_point, const Vector2 &p_end_point);
+	uint32_t set_2_point_callout_line(const Vector2 &p_start_point, const Vector2 &p_end_point);
+	uint32_t set_default_style(const String &p_style);
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_LineAnnot_SetLeader(HPDF_Annotation annot, HPDF_INT leaderLen, HPDF_INT leaderExtLen, HPDF_INT leaderOffsetLen);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_LineAnnot_SetCaption(HPDF_Annotation annot, HPDF_BOOL showCaption, HPDF_LineAnnotCapPosition position, HPDF_INT horzOffset, HPDF_INT vertOffset);
-#endif
-
-	PDFAnnotationLine();
-	~PDFAnnotationLine();
+	PDFAnnotationFreeText();
+	~PDFAnnotationFreeText();
 
 protected:
 	static void _bind_methods();
@@ -163,16 +226,10 @@ class PDFAnnotationWidgetWhitePrint : public PDFAnnotation {
 	GDCLASS(PDFAnnotationWidgetWhitePrint, PDFAnnotation);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationWidgetWhitePrint();
 	~PDFAnnotationWidgetWhitePrint();
 
 protected:
-#if 0
-#endif
-
 	static void _bind_methods();
 };
 
@@ -180,9 +237,6 @@ class PDFAnnotationWidget : public PDFAnnotation {
 	GDCLASS(PDFAnnotationWidget, PDFAnnotation);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationWidget();
 	~PDFAnnotationWidget();
 
@@ -194,29 +248,17 @@ class PDFAnnotationLink : public PDFAnnotation {
 	GDCLASS(PDFAnnotationLink, PDFAnnotation);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_LinkAnnot_SetHighlightMode(HPDF_Annotation annot,
-			HPDF_AnnotHighlightMode mode);
+	enum HighlightMode {
+		HIGHLIGHT_MODE_NO_HIGHTLIGHT = 0,
+		HIGHLIGHT_MODE_INVERT_BOX,
+		HIGHLIGHT_MODE_INVERT_BORDER,
+		HIGHLIGHT_MODE_DOWN_APPEARANCE,
+		HIGHLIGHT_MODE_HIGHTLIGHT_MODE_EOF
+	};
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_LinkAnnot_SetJavaScript(HPDF_Annotation annot,
-			HPDF_JavaScript javascript);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_LinkAnnot_SetBorderStyle(HPDF_Annotation annot,
-			HPDF_REAL width,
-			HPDF_UINT16 dash_on,
-			HPDF_UINT16 dash_off);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_TextAnnot_SetIcon(HPDF_Annotation annot,
-			HPDF_AnnotIcon icon);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_TextAnnot_SetOpened(HPDF_Annotation annot,
-			HPDF_BOOL opened);
-#endif
+	uint32_t set_highlight_mode(const HighlightMode p_highlight_mode);
+	uint32_t set_javascript(const Ref<PDFJavascript> &p_javascript);
+	uint32_t set_link_border_style(const float p_width, const uint16_t p_dash_on, const uint16_t p_dash_off);
 
 	PDFAnnotationLink();
 	~PDFAnnotationLink();
@@ -225,13 +267,12 @@ protected:
 	static void _bind_methods();
 };
 
+VARIANT_ENUM_CAST(PDFAnnotationLink::HighlightMode);
+
 class PDFAnnotationURILink : public PDFAnnotation {
 	GDCLASS(PDFAnnotationURILink, PDFAnnotation);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationURILink();
 	~PDFAnnotationURILink();
 
@@ -239,50 +280,32 @@ protected:
 	static void _bind_methods();
 };
 
-class PDFAnnotationTextMarkup : public PDFAnnotation {
-	GDCLASS(PDFAnnotationTextMarkup, PDFAnnotation);
+class PDFAnnotationTextMarkup : public PDFAnnotationMarkup {
+	GDCLASS(PDFAnnotationTextMarkup, PDFAnnotationMarkup);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetTitle(HPDF_Annotation annot, const char *name);
+	enum AnnotSubType {
+		ANNOTATION_TYPE_TEXT_NOTES,
+		ANNOTATION_TYPE_LINK,
+		ANNOTATION_TYPE_SOUND,
+		ANNOTATION_TYPE_FREE_TEXT,
+		ANNOTATION_TYPE_STAMP,
+		ANNOTATION_TYPE_SQUARE,
+		ANNOTATION_TYPE_CIRCLE,
+		ANNOTATION_TYPE_STRIKE_OUT,
+		ANNOTATION_TYPE_HIGHTLIGHT,
+		ANNOTATION_TYPE_UNDERLINE,
+		ANNOTATION_TYPE_INK,
+		ANNOTATION_TYPE_FILE_ATTACHMENT,
+		ANNOTATION_TYPE_POPUP,
+		ANNOTATION_TYPE_3D,
+		ANNOTATION_TYPE_SQUIGGLY,
+		ANNOTATION_TYPE_LINE,
+		ANNOTATION_TYPE_PROJECTION,
+		ANNOTATION_TYPE_WIDGET
+	};
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetSubject(HPDF_Annotation annot, const char *name);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetCreationDate(HPDF_Annotation annot, HPDF_Date value);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetTransparency(HPDF_Annotation annot, HPDF_REAL value);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetIntent(HPDF_Annotation annot, HPDF_AnnotIntent intent);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetPopup(HPDF_Annotation annot, HPDF_Annotation popup);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetRectDiff(HPDF_Annotation annot, HPDF_Rect rect); /* RD entry */
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetCloudEffect(HPDF_Annotation annot, HPDF_INT cloudIntensity); /* BE entry */
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetInteriorRGBColor(HPDF_Annotation annot, HPDF_RGBColor color); /* IC with RGB entry */
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetInteriorCMYKColor(HPDF_Annotation annot, HPDF_CMYKColor color); /* IC with CMYK entry */
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetInteriorGrayColor(HPDF_Annotation annot, HPDF_REAL color); /* IC with Gray entry */
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_MarkupAnnot_SetInteriorTransparent(HPDF_Annotation annot); /* IC with No Color entry */
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_TextMarkupAnnot_SetQuadPoints(HPDF_Annotation annot, HPDF_Point lb, HPDF_Point rb, HPDF_Point rt, HPDF_Point lt); /* l-left, r-right, b-bottom, t-top positions */
-#endif
+	uint32_t set_quad_points(const Vector2 &p_lb, const Vector2 &p_rb, const Vector2 &p_rt, const Vector2 &p_lt);
 
 	PDFAnnotationTextMarkup();
 	~PDFAnnotationTextMarkup();
@@ -291,13 +314,12 @@ protected:
 	static void _bind_methods();
 };
 
+VARIANT_ENUM_CAST(PDFAnnotationTextMarkup::AnnotSubType);
+
 class PDFAnnotationHighlight : public PDFAnnotation {
 	GDCLASS(PDFAnnotationHighlight, PDFAnnotation);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationHighlight();
 	~PDFAnnotationHighlight();
 
@@ -309,9 +331,6 @@ class PDFAnnotationUnderline : public PDFAnnotation {
 	GDCLASS(PDFAnnotationUnderline, PDFAnnotation);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationUnderline();
 	~PDFAnnotationUnderline();
 
@@ -323,9 +342,6 @@ class PDFAnnotationSquiggly : public PDFAnnotation {
 	GDCLASS(PDFAnnotationSquiggly, PDFAnnotation);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationSquiggly();
 	~PDFAnnotationSquiggly();
 
@@ -337,28 +353,8 @@ class PDFAnnotationStrikeOut : public PDFAnnotation {
 	GDCLASS(PDFAnnotationStrikeOut, PDFAnnotation);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationStrikeOut();
 	~PDFAnnotationStrikeOut();
-
-protected:
-	static void _bind_methods();
-};
-
-class PDFAnnotationPopup : public PDFAnnotation {
-	GDCLASS(PDFAnnotationPopup, PDFAnnotation);
-
-public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_PopupAnnot_SetOpened(HPDF_Annotation annot,
-			HPDF_BOOL opened);
-#endif
-
-	PDFAnnotationPopup();
-	~PDFAnnotationPopup();
 
 protected:
 	static void _bind_methods();
@@ -368,8 +364,22 @@ class PDFAnnotationStamp : public PDFAnnotation {
 	GDCLASS(PDFAnnotationStamp, PDFAnnotation);
 
 public:
-#if 0
-#endif
+	enum StampAnnotName {
+		STAMP_ANNOT_APPROVED = 0,
+		STAMP_ANNOT_EXPERIMENTAL,
+		STAMP_ANNOT_NOTAPPROVED,
+		STAMP_ANNOT_ASIS,
+		STAMP_ANNOT_EXPIRED,
+		STAMP_ANNOT_NOTFORPUBLICRELEASE,
+		STAMP_ANNOT_CONFIDENTIAL,
+		STAMP_ANNOT_FINAL,
+		STAMP_ANNOT_SOLD,
+		STAMP_ANNOT_DEPARTMENTAL,
+		STAMP_ANNOT_FORCOMMENT,
+		STAMP_ANNOT_TOPSECRET,
+		STAMP_ANNOT_DRAFT,
+		STAMP_ANNOT_FORPUBLICRELEASE
+	};
 
 	PDFAnnotationStamp();
 	~PDFAnnotationStamp();
@@ -378,14 +388,13 @@ protected:
 	static void _bind_methods();
 };
 
+VARIANT_ENUM_CAST(PDFAnnotationStamp::StampAnnotName);
+
 class PDFAnnotationProjection : public PDFAnnotation {
 	GDCLASS(PDFAnnotationProjection, PDFAnnotation);
 
 public:
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_ProjectionAnnot_SetExData(HPDF_Annotation annot, HPDF_ExData exdata);
-#endif
+	uint32_t set_ex_data(const Ref<PDFExData> &p_ex_data);
 
 	PDFAnnotationProjection();
 	~PDFAnnotationProjection();
@@ -394,13 +403,10 @@ protected:
 	static void _bind_methods();
 };
 
-class PDFAnnotationSquare : public PDFAnnotation {
-	GDCLASS(PDFAnnotationSquare, PDFAnnotation);
+class PDFAnnotationSquare : public PDFAnnotationMarkup {
+	GDCLASS(PDFAnnotationSquare, PDFAnnotationMarkup);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationSquare();
 	~PDFAnnotationSquare();
 
@@ -408,13 +414,10 @@ protected:
 	static void _bind_methods();
 };
 
-class PDFAnnotationCircle : public PDFAnnotation {
-	GDCLASS(PDFAnnotationCircle, PDFAnnotation);
+class PDFAnnotationCircle : public PDFAnnotationMarkup {
+	GDCLASS(PDFAnnotationCircle, PDFAnnotationMarkup);
 
 public:
-#if 0
-#endif
-
 	PDFAnnotationCircle();
 	~PDFAnnotationCircle();
 

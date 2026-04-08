@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PDFFont" inherits="Reference">
+	<brief_description>
+	</brief_description>
+	<description>
+		Font types - There are several types of fonts available:
+		Base14 Font: The built-in font of PDF. Can be used for all viewer applications. Base14 fonts are built into PDF and all viewer applications can display these fonts. An application can get a base14 font handle any time by invoking [method PDFDocument.font_get]. PDF files which use base14 fonts are smaller than those which use other type of fonts. Moreover, PDF processing is faster because there is no need to load external fonts. However, base14 fonts are only able to display the latin1 character set. To use other character sets, an application must use other fonts.
+		Type1 Font: A font format used by PostScript. Type1 is a format of outline fonts developed by Adobe. An AFM file is necessary to use an external Type1 font on Haru. When an application uses an external Type1 font, an application has to invoke [method PDFDocument.font_load_type_1_from_file] before invoking HPDF_GetFont(). The return value is used as font-name parameter of [method PDFDocument.font_get]. If a PFA/PFB file is specified at invoking [method PDFDocument.font_load_type_1_from_file], the glyph data of the font is embedded to the PDF file. Otherwise, only metrics data in AFM file is embedded.
+		TrueType Font: Widely used outline font format. There are two types of TrueType fonts. The first format, with ".ttf" extension, contains only one font-data in the file. [method PDFDocument.font_load_ttf_from_file] loads this type of font. The second format, with ".ttc" extension, contains multiple font-data in the file. [method PDFDocument.font_load_ttf_from_collection_file] loads this type of font. It has a parameter which is used to specify the index of the font to load. If the parameter "embedding" is set to true the subset of a font is embedded into a PDF file. If not, only the marix data is stored into a PDF file. In this case a viewer application may use an alternative font if it cannot find font.
+		CID Font: Font format for multi-byte characters. CIDFont is a font for multi byte character developed by Adobe. Two simplified Chinese fonts, one traditional Chinese fonts, four Japanese fonts, and four Korean fonts are available on Haru. An application have to invoke the following functions once before using CID fonts.
+		Built-in fonts:
+		- "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique"
+		- "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique"
+		- "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic"
+		- "Symbol", "ZapfDingbats"
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_ascent">
+			<return type="int" />
+			<description>
+				Gets the vertical ascent of the font.
+			</description>
+		</method>
+		<method name="get_bbox">
+			<return type="Rect2" />
+			<description>
+				Gets the bounding box of the font.
+			</description>
+		</method>
+		<method name="get_cap_height">
+			<return type="int" />
+			<description>
+				Gets the distance from the baseline of uppercase letters.
+			</description>
+		</method>
+		<method name="get_descent">
+			<return type="int" />
+			<description>
+				Gets the vertical descent of the font.
+			</description>
+		</method>
+		<method name="get_encoding_name">
+			<return type="String" />
+			<description>
+				Gets the encoding name of the font.
+			</description>
+		</method>
+		<method name="get_font_name">
+			<return type="String" />
+			<description>
+				Gets the name of the font.
+			</description>
+		</method>
+		<method name="get_text_width">
+			<return type="Dictionary" />
+			<argument index="0" name="text" type="String" />
+			<description>
+				Gets total width of the text, number of characters, and number of words.
+			</description>
+		</method>
+		<method name="get_unicode_width">
+			<return type="int" />
+			<argument index="0" name="code" type="int" />
+			<description>
+				Gets the width of a Unicode character in a specific font. Actual width of the character on the page can be calculated as follows:
+				[codeblock]char_width = font.get_unicode_width(UNICODE);
+				float actual_width = char_width * FONT_SIZE / 1000;[/codeblock]
+			</description>
+		</method>
+		<method name="get_x_height">
+			<return type="int" />
+			<description>
+				Gets the distance from the baseline of lowercase letters.
+			</description>
+		</method>
+		<method name="measure_text">
+			<return type="Array" />
+			<argument index="0" name="text" type="String" />
+			<argument index="1" name="width" type="float" />
+			<argument index="2" name="font_size" type="float" />
+			<argument index="3" name="char_space" type="float" />
+			<argument index="4" name="word_space" type="float" />
+			<argument index="5" name="wordwrap" type="bool" />
+			<description>
+				Calculates the byte length which can be included within the specified width.
+				Parameters
+				- text - The text to use for calculation.
+				- len - The length of the text.
+				- width - The width of the area to put the text.
+				- font_size - The size of the font.
+				- char_space - The character spacing.
+				- word_space - The word spacing.
+				- wordwrap - Suppose there are three words: "ABCDE", "FGH", and "IJKL". Also, suppose the substring until "J" can be included within the width (12 bytes). If word_wrap is HPDF_FALSE the function returns 12. If word_wrap parameter is HPDF_TRUE, it returns 10 (the end of the previous word).
+				Returns byte length which can be included within specified width as the 0th index, the real width of the text as the 1th index.
+			</description>
+		</method>
+	</methods>
+	<constants>
+	</constants>
+</class>

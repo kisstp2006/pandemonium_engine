@@ -33,6 +33,8 @@
 
 #include "core/os/file_access.h"
 
+#include "html_template_renderer.h"
+
 bool HTMLTemplateData::has_template(const StringName &p_name) const {
 	return _templates.has(p_name);
 }
@@ -47,6 +49,15 @@ String HTMLTemplateData::get_template(const StringName &p_name) const {
 }
 void HTMLTemplateData::set_template(const StringName &p_name, const String &p_value) {
 	_templates[p_name] = p_value;
+
+	Ref<HTMLTemplateRenderer> renderer;
+	renderer.instance();
+	if (renderer->compile(p_value, 1, true)) {
+		ERR_PRINT(vformat("Error in template! Name: %s. HTMLTemplateData name: %s, path: %s.", p_name, get_name(), get_path()));
+	}
+	_template_renderers[p_name] = renderer;
+
+	emit_changed();
 }
 void HTMLTemplateData::remove_template(const StringName &p_name) {
 	_templates.erase(p_name);
@@ -61,8 +72,20 @@ Dictionary HTMLTemplateData::get_templates() const {
 
 	return ret;
 }
+
+Ref<HTMLTemplateRenderer> HTMLTemplateData::get_template_renderer(const StringName &p_name) const {
+	const Ref<HTMLTemplateRenderer> *val = _template_renderers.getptr(p_name);
+
+	if (!val) {
+		return Ref<HTMLTemplateRenderer>();
+	}
+
+	return *val;
+}
+
 void HTMLTemplateData::set_templates(const Dictionary &p_dict) {
-	clear();
+	_templates.clear();
+	_template_renderers.clear();
 
 	Array keys = p_dict.keys();
 
@@ -74,23 +97,29 @@ void HTMLTemplateData::set_templates(const Dictionary &p_dict) {
 			continue;
 		}
 
-		_templates[k] = String(p_dict[k]);
-	}
-}
+		String data = String(p_dict[k]);
 
-HashMap<StringName, String> HTMLTemplateData::get_templates_map() const {
-	return _templates;
-}
-void HTMLTemplateData::set_templates_map(const HashMap<StringName, String> &p_map) {
-	_templates = p_map;
+		_templates[k] = data;
+
+		Ref<HTMLTemplateRenderer> renderer;
+		renderer.instance();
+		if (renderer->compile(data, 1, true)) {
+			ERR_PRINT(vformat("Error in template! Name: %s. HTMLTemplateData name: %s, path: %s.", k, get_name(), get_path()));
+		}
+		_template_renderers[k] = renderer;
+	}
+
+	emit_changed();
 }
 
 void HTMLTemplateData::clear() {
 	_templates.clear();
+
+	emit_changed();
 }
 
 Error HTMLTemplateData::load_from_file(const String &p_file) {
-	clear();
+	_templates.clear();
 
 	Error err;
 	FileAccess *f = FileAccess::open(p_file, FileAccess::READ, &err);
@@ -100,6 +129,8 @@ Error HTMLTemplateData::load_from_file(const String &p_file) {
 			memdelete(f);
 		}
 
+		emit_changed();
+
 		return err;
 	}
 
@@ -108,7 +139,9 @@ Error HTMLTemplateData::load_from_file(const String &p_file) {
 	f->close();
 	memdelete(f);
 
-	load_from_string(data);
+	if (load_from_string(data)) {
+		ERR_PRINT(vformat("File name: %s.", p_file));
+	}
 
 	return OK;
 }
@@ -133,13 +166,17 @@ Error HTMLTemplateData::save_to_file(const String &p_file) const {
 
 	return OK;
 }
-void HTMLTemplateData::load_from_string(const String &p_data) {
-	clear();
+bool HTMLTemplateData::load_from_string(const String &p_data) {
+	_templates.clear();
+	_template_renderers.clear();
+
+	bool had_error = false;
 
 	Vector<String> lines = p_data.split("\n", false);
 
 	String current_section_name;
 	String current_str;
+	int section_line_start = 0;
 	for (int i = 0; i < lines.size(); ++i) {
 		// Section header: [ Section Name ]
 		// Should not have whitespace in front and back
@@ -147,12 +184,24 @@ void HTMLTemplateData::load_from_string(const String &p_data) {
 
 		if (l.begins_with("[") && l.ends_with("]")) {
 			if (!current_section_name.empty()) {
-				_templates[current_section_name] = current_str;
+				StringName csnsn = current_section_name;
+
+				_templates[csnsn] = current_str;
+
+				Ref<HTMLTemplateRenderer> renderer;
+				renderer.instance();
+				if (renderer->compile(current_str, section_line_start, true)) {
+					ERR_PRINT(vformat("Section name: %s.", current_section_name));
+					had_error = true;
+				}
+				_template_renderers[csnsn] = renderer;
 			}
 
 			// Remove [ and ], and strip it.
 			current_section_name = l.substr_index(1, l.length() - 2).strip_edges();
 			current_str = "";
+			// We need to start after the header, with 1 based indexing
+			section_line_start = i + 2;
 			continue;
 		}
 
@@ -160,8 +209,21 @@ void HTMLTemplateData::load_from_string(const String &p_data) {
 	}
 
 	if (!current_section_name.empty()) {
-		_templates[current_section_name] = current_str;
+		StringName csnsn = current_section_name;
+
+		_templates[csnsn] = current_str;
+		Ref<HTMLTemplateRenderer> renderer;
+		renderer.instance();
+		if (renderer->compile(current_str, section_line_start, true)) {
+			ERR_PRINT(vformat("Section name: %s.", current_section_name));
+			had_error = true;
+		}
+		_template_renderers[csnsn] = renderer;
 	}
+
+	emit_changed();
+
+	return had_error;
 }
 String HTMLTemplateData::save_as_string() const {
 	String data;
@@ -186,6 +248,8 @@ void HTMLTemplateData::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_template", "name"), &HTMLTemplateData::get_template);
 	ClassDB::bind_method(D_METHOD("set_template", "name", "value"), &HTMLTemplateData::set_template);
 	ClassDB::bind_method(D_METHOD("remove_template", "name"), &HTMLTemplateData::remove_template);
+
+	ClassDB::bind_method(D_METHOD("get_template_renderer", "name"), &HTMLTemplateData::get_template_renderer);
 
 	ClassDB::bind_method(D_METHOD("get_templates"), &HTMLTemplateData::get_templates);
 	ClassDB::bind_method(D_METHOD("set_templates", "dict"), &HTMLTemplateData::set_templates);

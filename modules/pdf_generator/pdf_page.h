@@ -34,6 +34,7 @@
 
 #include "core/object/reference.h"
 
+#include "pdf_annotation.h"
 #include "pdf_document.h"
 
 class PDFFont;
@@ -43,26 +44,9 @@ class PDFExtGState;
 class PDFShading;
 class PDFXObject;
 class PDF3DView;
-
-class PDFAnnotation;
-class PDFAnnotation3D;
-class PDFAnnotationText;
-class PDFAnnotationFreeText;
-class PDFAnnotationLine;
-class PDFAnnotationWidgetWhitePrint;
-class PDFAnnotationWidget;
-class PDFAnnotationLink;
-class PDFAnnotationURILink;
-class PDFAnnotationTextMarkup;
-class PDFAnnotationHighlight;
-class PDFAnnotationUnderline;
-class PDFAnnotationSquiggly;
-class PDFAnnotationStrikeOut;
-class PDFAnnotationPopup;
-class PDFAnnotationStamp;
-class PDFAnnotationProjection;
-class PDFAnnotationSquare;
-class PDFAnnotationCircle;
+class PDF3DMeasure;
+class PDFExData;
+class PDFDestination;
 
 class PDFPage : public Reference {
 	GDCLASS(PDFPage, Reference);
@@ -151,6 +135,16 @@ public:
 		TRANSITION_STYLE_EOF
 	};
 
+	enum GraphicsMode {
+		GRAPHICS_MODE_PAGE_DESCRIPTION = 0x0001,
+		GRAPHICS_MODE_PATH_OBJECT = 0x0002,
+		GRAPHICS_MODE_TEXT_OBJECT = 0x0004,
+		GRAPHICS_MODE_CLIPPING_PATH = 0x0008,
+		GRAPHICS_MODE_SHADING = 0x0010,
+		GRAPHICS_MODE_INLINE_IMAGE = 0x0020,
+		GRAPHICS_MODE_EXTERNAL_OBJECT = 0x0040,
+	};
+
 	float get_width();
 	void set_width(const float p_width);
 
@@ -164,7 +158,7 @@ public:
 	uint32_t zoom_set(const float p_zoom);
 
 	float text_width(const String &p_text);
-	float measure_text(const String &p_text, float p_width, bool p_word_wrap);
+	Vector2 measure_text(const String &p_text, float p_width, bool p_word_wrap);
 
 	uint16_t g_mode_get();
 
@@ -300,166 +294,34 @@ public:
 	Ref<PDFAnnotationText> annotation_text_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
 	Ref<PDFAnnotationFreeText> annotation_free_text_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
 	Ref<PDFAnnotationLine> annotation_line_create(const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationWidgetWhitePrint> annotation_widget_white_print_create(const Rect2 &p_rect);
+	Ref<PDFAnnotationWidget> annotation_widget_create(const Rect2 &p_rect);
+	Ref<PDFAnnotationLink> annotation_link_create(const Rect2 &p_rect, const Ref<PDFDestination> &p_destination);
+	Ref<PDFAnnotationURILink> annotation_uri_link_create(const Rect2 &p_rect, const String &p_uri);
+	Ref<PDFAnnotationTextMarkup> annotation_text_markup_create(const Rect2 &p_rect, const String &p_text, const PDFAnnotationTextMarkup::AnnotSubType p_sub_type, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationHighlight> annotation_highlight_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationUnderline> annotation_underline_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationSquiggly> annotation_squiggly_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationStrikeOut> annotation_strike_out_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationPopup> annotation_popup_create(const Rect2 &p_rect, const Ref<PDFAnnotation> &p_parent);
+	Ref<PDFAnnotationStamp> annotation_stamp_create(const Rect2 &p_rect, const PDFAnnotationStamp::StampAnnotName p_name, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationProjection> annotation_projection_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationSquare> annotation_square_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
+	Ref<PDFAnnotationCircle> annotation_circle_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder = Ref<PDFEncoder>());
 
-#if 0
-class PDFAnnotationWidgetWhitePrint;
-class PDFAnnotationWidget;
-class PDFAnnotationLink;
-class PDFAnnotationURILink;
-class PDFAnnotationTextMarkup;
-class PDFAnnotationHighlight;
-class PDFAnnotationUnderline;
-class PDFAnnotationSquiggly;
-class PDFAnnotationStrikeOut;
-class PDFAnnotationPopup;
-class PDFAnnotationStamp;
-class PDFAnnotationProjection;
-class PDFAnnotationSquare;
-class PDFAnnotationCircle;
-#endif
+	Ref<PDF3DMeasure> create_c3d_3d_measure(const Vector3 &p_first_anchor_point, const Vector3 &p_text_anchor_point);
+	Ref<PDF3DMeasure> create_pd3_3d_measure(const PoolVector3Array &p_points, const float p_value, const String &p_units_string);
 
-#if 0
-	/*----- annotation ---------------------------------------------------------*/
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateWidgetAnnot_WhiteOnlyWhilePrint(HPDF_Doc pdf,
-			HPDF_Page page,
-			HPDF_Rect rect);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateWidgetAnnot(HPDF_Page page,
-			HPDF_Rect rect);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateLinkAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			HPDF_Destination dst);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateURILinkAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *uri);
-
-	HPDF_Annotation
-	HPDF_Page_CreateTextMarkupAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder,
-			HPDF_AnnotType subType);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateHighlightAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateUnderlineAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateSquigglyAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateStrikeOutAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreatePopupAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			HPDF_Annotation parent);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateStampAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			HPDF_StampAnnotName name,
-			const char *text,
-			HPDF_Encoder encoder);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateProjectionAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateSquareAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder);
-
-	HPDF_EXPORT(HPDF_Annotation)
-	HPDF_Page_CreateCircleAnnot(HPDF_Page page,
-			HPDF_Rect rect,
-			const char *text,
-			HPDF_Encoder encoder);
-
-#endif
-
-#if 0
-	/*----- 3D Measure ---------------------------------------------------------*/
-	HPDF_EXPORT(HPDF_3DMeasure)
-	HPDF_Page_Create3DC3DMeasure(HPDF_Page page,
-			HPDF_Point3D firstanchorpoint,
-			HPDF_Point3D textanchorpoint);
-
-	HPDF_EXPORT(HPDF_3DMeasure)
-	HPDF_Page_CreatePD33DMeasure(HPDF_Page page,
-			HPDF_Point3D annotationPlaneNormal,
-			HPDF_Point3D firstAnchorPoint,
-			HPDF_Point3D secondAnchorPoint,
-			HPDF_Point3D leaderLinesDirection,
-			HPDF_Point3D measurementValuePoint,
-			HPDF_Point3D textYDirection,
-			HPDF_REAL value,
-			const char *unitsString);
-
-#endif
-
-#if 0
-	/*--------------------------------------------------------------------------*/
-	/*----- External Data ---------------------------------------------------------*/
-
-	HPDF_EXPORT(HPDF_ExData)
-	HPDF_Page_Create3DAnnotExData(HPDF_Page page);
-
-#endif
+	Ref<PDFExData> create_3d_annot_ex_data();
 
 	Ref<PDF3DView> create_3d_view_name(const String &p_name);
+	Ref<PDF3DView> create_3d_view(const Ref<PDFU3D> &p_u3d, const Ref<PDFAnnotation3D> &p_annot_3d, const String &p_name);
 
-#if 0
-	/*--------------------------------------------------------------------------*/
-	/*--------------------------------------------------------------------------*/
-	/*----- 3D View ---------------------------------------------------------*/
-
-	HPDF_EXPORT(HPDF_Dict)
-	HPDF_Page_Create3DView(HPDF_Page page,
-			HPDF_U3D u3d,
-			HPDF_Annotation annot3d,
-			const char *name);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_3DView_Add3DC3DMeasure(HPDF_Dict view,
-			HPDF_3DMeasure measure);
-
-#endif
-
-#if 0
-	/*----- destination --------------------------------------------------------*/
-
-	HPDF_EXPORT(HPDF_Destination)
-	HPDF_Page_CreateDestination(HPDF_Page page);
-
-#endif
+	Ref<PDFDestination> create_destination();
 
 	uint32_t get_status();
+
+	Ref<PDFDocument> document_get();
 
 	PDFPage();
 	~PDFPage();
@@ -467,8 +329,12 @@ class PDFAnnotationCircle;
 	void *_get_hpdf_page() const;
 	void _set_hpdf_page(void *p_page);
 
+	void _set_document(const Ref<PDFDocument> &p_document);
+
 protected:
 	static void _bind_methods();
+
+	WRef<PDFDocument> _document;
 
 	void *_page;
 

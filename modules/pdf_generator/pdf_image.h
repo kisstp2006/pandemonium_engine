@@ -34,65 +34,28 @@
 
 #include "core/object/reference.h"
 
+class PDFXObject;
+
 class PDFImage : public Reference {
 	GDCLASS(PDFImage, Reference);
 
 public:
+	uint32_t add_s_mask(const Ref<PDFImage> &p_smask);
+
+	Vector2 get_size();
+	Vector2 get_size_status();
+
 	uint32_t get_width();
 	uint32_t get_height();
 
-#if 0
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Image_AddSMask(HPDF_Image image,
-			HPDF_Image smask);
+	uint32_t get_bits_per_component();
+	String get_color_space();
 
-	HPDF_EXPORT(HPDF_Point)
-	HPDF_Image_GetSize(HPDF_Image image);
+	uint32_t set_color_mask(const Vector2i &p_r, const Vector2i &p_g, const Vector2i &p_b);
 
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Image_GetSize2(HPDF_Image image, HPDF_Point *size);
+	uint32_t set_mask_image(const Ref<PDFImage> &p_mask_image);
 
-	HPDF_EXPORT(HPDF_UINT)
-	HPDF_Image_GetWidth(HPDF_Image image);
-
-	HPDF_EXPORT(HPDF_UINT)
-	HPDF_Image_GetHeight(HPDF_Image image);
-
-	HPDF_EXPORT(HPDF_UINT)
-	HPDF_Image_GetBitsPerComponent(HPDF_Image image);
-
-	HPDF_EXPORT(const char *)
-	HPDF_Image_GetColorSpace(HPDF_Image image);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Image_SetColorMask(HPDF_Image image,
-			HPDF_UINT rmin,
-			HPDF_UINT rmax,
-			HPDF_UINT gmin,
-			HPDF_UINT gmax,
-			HPDF_UINT bmin,
-			HPDF_UINT bmax);
-
-	HPDF_EXPORT(HPDF_STATUS)
-	HPDF_Image_SetMaskImage(HPDF_Image image,
-			HPDF_Image mask_image);
-
-	// hpdf_image.h
-	HPDF_BOOL
-	HPDF_Image_Validate(HPDF_Image image);
-
-	HPDF_STATUS
-	HPDF_Image_SetMask(HPDF_Image image,
-			HPDF_BOOL mask);
-
-	HPDF_STATUS
-	HPDF_Image_SetColorSpace(HPDF_Image image,
-			HPDF_Array colorspace);
-
-	HPDF_STATUS
-	HPDF_Image_SetRenderingIntent(HPDF_Image image,
-			const char *intent);
-#endif
+	Ref<PDFXObject> as_x_object();
 
 	uint32_t get_status();
 

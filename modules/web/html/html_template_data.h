@@ -39,6 +39,8 @@
 
 #include "core/object/resource.h"
 
+class HTMLTemplateRenderer;
+
 class HTMLTemplateData : public Resource {
 	GDCLASS(HTMLTemplateData, Resource);
 
@@ -48,18 +50,17 @@ public:
 	void set_template(const StringName &p_name, const String &p_value);
 	void remove_template(const StringName &p_name);
 
+	Ref<HTMLTemplateRenderer> get_template_renderer(const StringName &p_name) const;
+
 	Dictionary get_templates() const;
 	void set_templates(const Dictionary &p_dict);
-
-	HashMap<StringName, String> get_templates_map() const;
-	void set_templates_map(const HashMap<StringName, String> &p_map);
 
 	void clear();
 
 	Error load_from_file(const String &p_file);
 	Error save_to_file(const String &p_file) const;
 
-	void load_from_string(const String &p_data);
+	bool load_from_string(const String &p_data);
 	String save_as_string() const;
 
 	HTMLTemplateData();
@@ -69,6 +70,7 @@ protected:
 	static void _bind_methods();
 
 	HashMap<StringName, String> _templates;
+	HashMap<StringName, Ref<HTMLTemplateRenderer>> _template_renderers;
 };
 
 #endif

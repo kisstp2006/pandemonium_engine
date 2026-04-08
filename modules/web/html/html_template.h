@@ -41,19 +41,12 @@
 
 class HTMLTemplateData;
 class WebServerRequest;
+class HTMLTemplateRenderer;
 
 class HTMLTemplate : public Resource {
 	GDCLASS(HTMLTemplate, Resource);
 
 public:
-	enum TemplateExpressionMethods {
-		TEMPLATE_EXPRESSION_METHOD_PRINT = 0,
-		TEMPLATE_EXPRESSION_METHOD_PRINT_RAW,
-		TEMPLATE_EXPRESSION_METHOD_PRINT_BR,
-		TEMPLATE_EXPRESSION_METHOD_PRINT_RAW_BR,
-		TEMPLATE_EXPRESSION_METHOD_VFORMAT,
-	};
-
 	// Templates
 	int get_template_count() const;
 	Ref<HTMLTemplateData> get_template(const int p_index);
@@ -71,13 +64,12 @@ public:
 	void set_template_override(const StringName &p_name, const String &p_value);
 	void remove_template_override(const StringName &p_name);
 
+	Ref<HTMLTemplateRenderer> get_template_override_renderer(const StringName &p_name) const;
+
 	void clear_template_overrides();
 
 	Dictionary get_template_overrides() const;
 	void set_template_overrides(const Dictionary &p_dict);
-
-	HashMap<StringName, String> get_template_overrides_map() const;
-	void set_template_overrides_map(const HashMap<StringName, String> &p_map);
 
 	// Defaults
 	bool has_template_default(const StringName &p_name) const;
@@ -85,22 +77,20 @@ public:
 	void set_template_default(const StringName &p_name, const String &p_value);
 	void remove_template_default(const StringName &p_name);
 
+	Ref<HTMLTemplateRenderer> get_template_default_renderer(const StringName &p_name) const;
+
 	void clear_template_defaults();
 
 	Dictionary get_template_defaults() const;
 	void set_template_defaults(const Dictionary &p_dict);
 
-	HashMap<StringName, String> get_template_defaults_map() const;
-	void set_template_defaults_map(const HashMap<StringName, String> &p_map);
-
 	// Use
 
 	String get_template_text(const StringName &p_name);
+	Ref<HTMLTemplateRenderer> get_template_renderer(const StringName &p_name);
 
-	String call_template_method(const TemplateExpressionMethods p_method, const Array &p_data, const bool p_first_var_decides_print);
-	Variant process_template_expression_variable(const String &p_variable, const Dictionary &p_data, const bool p_allow_missing = false);
-	String process_template_expression(const String &p_expression, const Dictionary &p_data);
 	String render_template(const String &p_text, const Dictionary &p_data);
+	String renderer_render_template(Ref<HTMLTemplateRenderer> p_renderer, const Dictionary &p_data);
 
 	String get_and_render_template(const StringName &p_name, const Dictionary &p_data);
 
@@ -111,13 +101,6 @@ public:
 	~HTMLTemplate();
 
 protected:
-	enum RenderTemplateState {
-		RENDER_TEMPLATE_STATE_NORMAL_TEXT = 0,
-		RENDER_TEMPLATE_STATE_EXPRESSION_POTENTIAL_START,
-		RENDER_TEMPLATE_STATE_EXPRESSION,
-		RENDER_TEMPLATE_STATE_EXPRESSION_END_NEXT,
-	};
-
 	void _on_editor_template_button_pressed(const StringName &p_property);
 
 	bool _set(const StringName &p_name, const Variant &p_value);
@@ -131,10 +114,11 @@ protected:
 	HashMap<StringName, String> _template_overrides;
 	HashMap<StringName, String> _template_defaults;
 
+	HashMap<StringName, Ref<HTMLTemplateRenderer>> _template_override_renderers;
+	HashMap<StringName, Ref<HTMLTemplateRenderer>> _template_default_renderers;
+
 	String _editor_new_template_override_key;
 	String _editor_new_template_default_key;
 };
-
-VARIANT_ENUM_CAST(HTMLTemplate::TemplateExpressionMethods);
 
 #endif

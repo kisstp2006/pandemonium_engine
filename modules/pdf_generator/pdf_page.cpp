@@ -32,15 +32,20 @@
 #include "pdf_page.h"
 
 #include "hpdf.h"
+#include "hpdf_3dmeasure.h"
+#include "hpdf_annotation.h"
 #include "hpdf_doc.h"
 #include "hpdf_font.h"
 #include "hpdf_pages.h"
 #include "hpdf_u3d.h"
 
+#include "pdf_3d_measure.h"
 #include "pdf_3d_view.h"
-#include "pdf_annotation.h"
 #include "pdf_dash_mode.h"
+#include "pdf_destination.h"
+#include "pdf_document.h"
 #include "pdf_encoder.h"
+#include "pdf_ex_data.h"
 #include "pdf_ext_g_state.h"
 #include "pdf_font.h"
 #include "pdf_image.h"
@@ -109,12 +114,12 @@ float PDFPage::text_width(const String &p_text) {
 	return HPDF_Page_TextWidth((HPDF_Page)_page, p_text.utf8().get_data());
 }
 
-float PDFPage::measure_text(const String &p_text, float p_width, bool p_word_wrap) {
+Vector2 PDFPage::measure_text(const String &p_text, float p_width, bool p_word_wrap) {
 	float result = 0;
 
-	_status = HPDF_Page_MeasureText((HPDF_Page)_page, p_text.utf8().get_data(), p_width, p_word_wrap, &result);
+	uint32_t m = HPDF_Page_MeasureText((HPDF_Page)_page, p_text.utf8().get_data(), p_width, p_word_wrap, &result);
 
-	return result;
+	return Vector2(m, result);
 }
 
 uint16_t PDFPage::g_mode_get() {
@@ -638,10 +643,10 @@ uint32_t PDFPage::slide_show_set(const TransitionStyle p_type, const float p_dis
 Ref<PDFAnnotation3D> PDFPage::annotation_3d_create(const Rect2 &p_rect, const bool p_tb, const bool p_np, const Ref<PDFU3D> &p_u3d, const Ref<PDFImage> &p_ap) {
 	HPDF_Rect rect;
 	rect.left = p_rect.position.x;
-	rect.top = p_rect.position.y;
+	rect.bottom = p_rect.position.y;
 	Vector2 rect_end = p_rect.get_end();
 	rect.right = rect_end.x;
-	rect.bottom = rect_end.y;
+	rect.top = rect_end.y;
 
 	HPDF_U3D hpdf_u3d = NULL;
 
@@ -664,15 +669,16 @@ Ref<PDFAnnotation3D> PDFPage::annotation_3d_create(const Rect2 &p_rect, const bo
 	Ref<PDFAnnotation3D> a;
 	a.instance();
 	a->_set_hpdf_annotation(hpdf_annotation);
+	a->_set_page(this);
 	return a;
 }
 Ref<PDFAnnotationText> PDFPage::annotation_text_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
 	HPDF_Rect rect;
 	rect.left = p_rect.position.x;
-	rect.top = p_rect.position.y;
+	rect.bottom = p_rect.position.y;
 	Vector2 rect_end = p_rect.get_end();
 	rect.right = rect_end.x;
-	rect.bottom = rect_end.y;
+	rect.top = rect_end.y;
 
 	HPDF_Encoder hpdf_encoder = NULL;
 
@@ -694,10 +700,10 @@ Ref<PDFAnnotationText> PDFPage::annotation_text_create(const Rect2 &p_rect, cons
 Ref<PDFAnnotationFreeText> PDFPage::annotation_free_text_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
 	HPDF_Rect rect;
 	rect.left = p_rect.position.x;
-	rect.top = p_rect.position.y;
+	rect.bottom = p_rect.position.y;
 	Vector2 rect_end = p_rect.get_end();
 	rect.right = rect_end.x;
-	rect.bottom = rect_end.y;
+	rect.top = rect_end.y;
 
 	HPDF_Encoder hpdf_encoder = NULL;
 
@@ -734,6 +740,418 @@ Ref<PDFAnnotationLine> PDFPage::annotation_line_create(const String &p_text, con
 	a->_set_hpdf_annotation(hpdf_annotation);
 	return a;
 }
+Ref<PDFAnnotationWidgetWhitePrint> PDFPage::annotation_widget_white_print_create(const Rect2 &p_rect) {
+	Ref<PDFDocument> doc = document_get();
+
+	if (!doc.is_valid()) {
+		return Ref<PDFAnnotationWidgetWhitePrint>();
+	}
+
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateWidgetAnnot_WhiteOnlyWhilePrint(doc->_get_hpdf_doc(), (HPDF_Page)_page, rect);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationWidgetWhitePrint>();
+	}
+
+	Ref<PDFAnnotationWidgetWhitePrint> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationWidget> PDFPage::annotation_widget_create(const Rect2 &p_rect) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateWidgetAnnot((HPDF_Page)_page, rect);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationWidget>();
+	}
+
+	Ref<PDFAnnotationWidget> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationLink> PDFPage::annotation_link_create(const Rect2 &p_rect, const Ref<PDFDestination> &p_destination) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Destination hpdf_dst = NULL;
+
+	if (p_destination.is_valid()) {
+		hpdf_dst = (HPDF_Destination)p_destination->_get_hpdf_destination();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateLinkAnnot((HPDF_Page)_page, rect, hpdf_dst);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationLink>();
+	}
+
+	Ref<PDFAnnotationLink> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationURILink> PDFPage::annotation_uri_link_create(const Rect2 &p_rect, const String &p_uri) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateURILinkAnnot((HPDF_Page)_page, rect, p_uri.utf8().get_data());
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationURILink>();
+	}
+
+	Ref<PDFAnnotationURILink> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationTextMarkup> PDFPage::annotation_text_markup_create(const Rect2 &p_rect, const String &p_text, const PDFAnnotationTextMarkup::AnnotSubType p_sub_type, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_AnnotType sub_type = static_cast<HPDF_AnnotType>(p_sub_type);
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateTextMarkupAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder, sub_type);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationTextMarkup>();
+	}
+
+	Ref<PDFAnnotationTextMarkup> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationHighlight> PDFPage::annotation_highlight_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateHighlightAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationHighlight>();
+	}
+
+	Ref<PDFAnnotationHighlight> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationUnderline> PDFPage::annotation_underline_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateUnderlineAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationUnderline>();
+	}
+
+	Ref<PDFAnnotationUnderline> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationSquiggly> PDFPage::annotation_squiggly_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateSquigglyAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationSquiggly>();
+	}
+
+	Ref<PDFAnnotationSquiggly> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationStrikeOut> PDFPage::annotation_strike_out_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateStrikeOutAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationStrikeOut>();
+	}
+
+	Ref<PDFAnnotationStrikeOut> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+
+Ref<PDFAnnotationPopup> PDFPage::annotation_popup_create(const Rect2 &p_rect, const Ref<PDFAnnotation> &p_parent) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Annotation hpdf_parent_annotation = NULL;
+
+	if (p_parent.is_valid()) {
+		hpdf_parent_annotation = (HPDF_Annotation)p_parent->_get_hpdf_annotation();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreatePopupAnnot((HPDF_Page)_page, rect, hpdf_parent_annotation);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationPopup>();
+	}
+
+	Ref<PDFAnnotationPopup> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationStamp> PDFPage::annotation_stamp_create(const Rect2 &p_rect, const PDFAnnotationStamp::StampAnnotName p_name, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_StampAnnotName name = static_cast<HPDF_StampAnnotName>(p_name);
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateStampAnnot((HPDF_Page)_page, rect, name, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationStamp>();
+	}
+
+	Ref<PDFAnnotationStamp> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationProjection> PDFPage::annotation_projection_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateProjectionAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationProjection>();
+	}
+
+	Ref<PDFAnnotationProjection> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationSquare> PDFPage::annotation_square_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateSquareAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationSquare>();
+	}
+
+	Ref<PDFAnnotationSquare> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+Ref<PDFAnnotationCircle> PDFPage::annotation_circle_create(const Rect2 &p_rect, const String &p_text, const Ref<PDFEncoder> &p_encoder) {
+	HPDF_Rect rect;
+	rect.left = p_rect.position.x;
+	rect.bottom = p_rect.position.y;
+	Vector2 rect_end = p_rect.get_end();
+	rect.right = rect_end.x;
+	rect.top = rect_end.y;
+
+	HPDF_Encoder hpdf_encoder = NULL;
+
+	if (p_encoder.is_valid()) {
+		hpdf_encoder = (HPDF_Encoder)p_encoder->_get_hpdf_encoder();
+	}
+
+	HPDF_Annotation hpdf_annotation = HPDF_Page_CreateCircleAnnot((HPDF_Page)_page, rect, p_text.utf8().get_data(), hpdf_encoder);
+
+	if (!hpdf_annotation) {
+		return Ref<PDFAnnotationCircle>();
+	}
+
+	Ref<PDFAnnotationCircle> a;
+	a.instance();
+	a->_set_hpdf_annotation(hpdf_annotation);
+	return a;
+}
+
+/*----- 3D Measure ---------------------------------------------------------*/
+
+inline static HPDF_Point3D _vector3_to_hdpf_point_3d(const Vector3 &p_point) {
+	HPDF_Point3D p;
+	p.x = p_point.x;
+	p.y = p_point.y;
+	p.z = p_point.z;
+	return p;
+}
+
+Ref<PDF3DMeasure> PDFPage::create_c3d_3d_measure(const Vector3 &p_first_anchor_point, const Vector3 &p_text_anchor_point) {
+	HPDF_Point3D firstanchorpoint = _vector3_to_hdpf_point_3d(p_first_anchor_point);
+	HPDF_Point3D textanchorpoint = _vector3_to_hdpf_point_3d(p_text_anchor_point);
+
+	HPDF_3DMeasure hpdf_3d_measure = HPDF_Page_Create3DC3DMeasure((HPDF_Page)_page, firstanchorpoint, textanchorpoint);
+
+	if (!hpdf_3d_measure) {
+		return Ref<PDF3DMeasure>();
+	}
+
+	Ref<PDF3DMeasure> a;
+	a.instance();
+	a->_set_hpdf_3d_measure(hpdf_3d_measure);
+	return a;
+}
+Ref<PDF3DMeasure> PDFPage::create_pd3_3d_measure(const PoolVector3Array &p_points, const float p_value, const String &p_units_string) {
+	ERR_FAIL_COND_V(p_points.size() != 6, Ref<PDF3DMeasure>());
+
+	int index = 0;
+	HPDF_Point3D annotationPlaneNormal = _vector3_to_hdpf_point_3d(p_points[index++]);
+	HPDF_Point3D firstAnchorPoint = _vector3_to_hdpf_point_3d(p_points[index++]);
+	HPDF_Point3D secondAnchorPoint = _vector3_to_hdpf_point_3d(p_points[index++]);
+	HPDF_Point3D leaderLinesDirection = _vector3_to_hdpf_point_3d(p_points[index++]);
+	HPDF_Point3D measurementValuePoint = _vector3_to_hdpf_point_3d(p_points[index++]);
+	HPDF_Point3D textYDirection = _vector3_to_hdpf_point_3d(p_points[index++]);
+
+	HPDF_3DMeasure hpdf_3d_measure = HPDF_Page_CreatePD33DMeasure((HPDF_Page)_page,
+			annotationPlaneNormal,
+			firstAnchorPoint,
+			secondAnchorPoint,
+			leaderLinesDirection,
+			measurementValuePoint,
+			textYDirection,
+			p_value,
+			p_units_string.utf8().get_data());
+
+	if (!hpdf_3d_measure) {
+		return Ref<PDF3DMeasure>();
+	}
+
+	Ref<PDF3DMeasure> a;
+	a.instance();
+	a->_set_hpdf_3d_measure(hpdf_3d_measure);
+	return a;
+}
+
+Ref<PDFExData> PDFPage::create_3d_annot_ex_data() {
+	HPDF_ExData hpdf_ex_data = HPDF_Page_Create3DAnnotExData((HPDF_Page)_page);
+
+	if (!hpdf_ex_data) {
+		return Ref<PDFExData>();
+	}
+
+	Ref<PDFExData> a;
+	a.instance();
+	a->_set_hpdf_ex_data(hpdf_ex_data);
+	return a;
+}
 
 Ref<PDF3DView> PDFPage::create_3d_view_name(const String &p_name) {
 	HPDF_Dict hpdf_view = HPDF_Create3DView(HPDF_GetPageMMgr((HPDF_Page)_page), p_name.utf8().get_data());
@@ -747,12 +1165,55 @@ Ref<PDF3DView> PDFPage::create_3d_view_name(const String &p_name) {
 	view->_set_hpdf_3d_view(hpdf_view);
 	return view;
 }
+Ref<PDF3DView> PDFPage::create_3d_view(const Ref<PDFU3D> &p_u3d, const Ref<PDFAnnotation3D> &p_annot_3d, const String &p_name) {
+	HPDF_U3D hpdf_u3d = NULL;
+
+	if (p_u3d.is_valid()) {
+		hpdf_u3d = (HPDF_U3D)p_u3d->_get_hpdf_u3d();
+	}
+
+	HPDF_Annotation hpdf_annot3d = NULL;
+
+	if (p_annot_3d.is_valid()) {
+		hpdf_annot3d = (HPDF_Annotation)p_annot_3d->_get_hpdf_annotation();
+	}
+
+	HPDF_Dict hpdf_view = HPDF_Page_Create3DView((HPDF_Page)_page, hpdf_u3d, hpdf_annot3d, p_name.utf8().get_data());
+
+	if (!hpdf_view) {
+		return Ref<PDF3DView>();
+	}
+
+	Ref<PDF3DView> view;
+	view.instance();
+	view->_set_hpdf_3d_view(hpdf_view);
+	return view;
+}
+
+Ref<PDFDestination> PDFPage::create_destination() {
+	HPDF_Destination hpdf_dest = HPDF_Page_CreateDestination((HPDF_Page)_page);
+
+	if (!hpdf_dest) {
+		return Ref<PDFDestination>();
+	}
+
+	Ref<PDFDestination> dest;
+	dest.instance();
+	dest->_set_hpdf_destination(hpdf_dest);
+	return dest;
+}
 
 uint32_t PDFPage::get_status() {
 	return _status;
 }
 
+Ref<PDFDocument> PDFPage::document_get() {
+	return _document.get_ref();
+}
+
 PDFPage::PDFPage() {
+	_status = 0;
+
 	_page = NULL;
 }
 
@@ -765,6 +1226,10 @@ void *PDFPage::_get_hpdf_page() const {
 
 void PDFPage::_set_hpdf_page(void *p_page) {
 	_page = p_page;
+}
+
+void PDFPage::_set_document(const Ref<PDFDocument> &p_document) {
+	_document.set_ref(p_document);
 }
 
 void PDFPage::_bind_methods() {
@@ -887,7 +1352,7 @@ void PDFPage::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("path_line_to", "position"), &PDFPage::path_line_to);
 	ClassDB::bind_method(D_METHOD("path_curve_to", "cp_start", "cp_end", "end_point"), &PDFPage::path_curve_to);
 	ClassDB::bind_method(D_METHOD("path_curve_to_2", "cp_end", "end_point"), &PDFPage::path_curve_to_2);
-	ClassDB::bind_method(D_METHOD("path_curve_to_3", "end_point"), &PDFPage::path_curve_to_3);
+	ClassDB::bind_method(D_METHOD("path_curve_to_3", "cp_start", "end_point"), &PDFPage::path_curve_to_3);
 	ClassDB::bind_method(D_METHOD("path_rectangle", "rect"), &PDFPage::path_rectangle);
 	ClassDB::bind_method(D_METHOD("path_close"), &PDFPage::path_close);
 
@@ -937,10 +1402,34 @@ void PDFPage::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("annotation_text_create", "rect", "text", "encoder"), &PDFPage::annotation_text_create, DEFVAL(Ref<PDFEncoder>()));
 	ClassDB::bind_method(D_METHOD("annotation_free_text_create", "rect", "text", "encoder"), &PDFPage::annotation_free_text_create, DEFVAL(Ref<PDFEncoder>()));
 	ClassDB::bind_method(D_METHOD("annotation_line_create", "text", "encoder"), &PDFPage::annotation_line_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_widget_white_print_create", "rect"), &PDFPage::annotation_widget_white_print_create);
+	ClassDB::bind_method(D_METHOD("annotation_widget_create", "rect"), &PDFPage::annotation_widget_create);
+	ClassDB::bind_method(D_METHOD("annotation_link_create", "rect", "destination"), &PDFPage::annotation_link_create);
+	ClassDB::bind_method(D_METHOD("annotation_uri_link_create", "rect", "uri"), &PDFPage::annotation_uri_link_create);
+	ClassDB::bind_method(D_METHOD("annotation_text_markup_create", "rect", "text", "sub_type", "encoder"), &PDFPage::annotation_text_markup_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_highlight_create", "rect", "text", "encoder"), &PDFPage::annotation_highlight_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_underline_create", "rect", "text", "encoder"), &PDFPage::annotation_underline_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_squiggly_create", "rect", "text", "encoder"), &PDFPage::annotation_squiggly_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_strike_out_create", "rect", "text", "encoder"), &PDFPage::annotation_strike_out_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_popup_create", "rect", "parent"), &PDFPage::annotation_popup_create);
+	ClassDB::bind_method(D_METHOD("annotation_stamp_create", "rect", "name", "text", "encoder"), &PDFPage::annotation_stamp_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_projection_create", "rect", "text", "encoder"), &PDFPage::annotation_projection_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_square_create", "rect", "text", "encoder"), &PDFPage::annotation_square_create, DEFVAL(Ref<PDFEncoder>()));
+	ClassDB::bind_method(D_METHOD("annotation_circle_create", "rect", "text", "encoder"), &PDFPage::annotation_circle_create, DEFVAL(Ref<PDFEncoder>()));
+
+	ClassDB::bind_method(D_METHOD("create_c3d_3d_measure", "first_anchor_point", "text_anchor_point"), &PDFPage::create_c3d_3d_measure);
+	ClassDB::bind_method(D_METHOD("create_pd3_3d_measure", "points", "value", "units_string"), &PDFPage::create_pd3_3d_measure);
+
+	ClassDB::bind_method(D_METHOD("create_3d_annot_ex_data"), &PDFPage::create_3d_annot_ex_data);
 
 	ClassDB::bind_method(D_METHOD("create_3d_view_name", "name"), &PDFPage::create_3d_view_name);
+	ClassDB::bind_method(D_METHOD("create_3d_view", "u3d", "annot_3d", "name"), &PDFPage::create_3d_view);
+
+	ClassDB::bind_method(D_METHOD("create_destination"), &PDFPage::create_destination);
 
 	ClassDB::bind_method(D_METHOD("get_status"), &PDFPage::get_status);
+
+	ClassDB::bind_method(D_METHOD("document_get"), &PDFPage::document_get);
 
 	BIND_ENUM_CONSTANT(PAGE_BOUNDARY_MEDIABOX);
 	BIND_ENUM_CONSTANT(PAGE_BOUNDARY_CROPBOX);
@@ -1008,4 +1497,12 @@ void PDFPage::_bind_methods() {
 	BIND_ENUM_CONSTANT(TRANSITION_STYLE_GLITTER_TOP_LEFT_TO_BOTTOM_RIGHT);
 	BIND_ENUM_CONSTANT(TRANSITION_STYLE_REPLACE);
 	BIND_ENUM_CONSTANT(TRANSITION_STYLE_EOF);
+
+	BIND_CONSTANT(GRAPHICS_MODE_PAGE_DESCRIPTION);
+	BIND_CONSTANT(GRAPHICS_MODE_PATH_OBJECT);
+	BIND_CONSTANT(GRAPHICS_MODE_TEXT_OBJECT);
+	BIND_CONSTANT(GRAPHICS_MODE_CLIPPING_PATH);
+	BIND_CONSTANT(GRAPHICS_MODE_SHADING);
+	BIND_CONSTANT(GRAPHICS_MODE_INLINE_IMAGE);
+	BIND_CONSTANT(GRAPHICS_MODE_EXTERNAL_OBJECT);
 }

@@ -240,8 +240,8 @@ void WebServerRequest::response_remove_cookie_simple(const String &key) {
 void WebServerRequest::custom_response_header_set(const StringName &key, const String &value) {
 	_custom_response_headers[key] = value;
 }
-String WebServerRequest::custom_response_header_get(const StringName &key) {
-	String *e = _custom_response_headers.getptr(key);
+String WebServerRequest::custom_response_header_get(const StringName &key) const {
+	const String *e = _custom_response_headers.getptr(key);
 
 	if (!e) {
 		return String();
@@ -251,6 +251,9 @@ String WebServerRequest::custom_response_header_get(const StringName &key) {
 }
 bool WebServerRequest::custom_response_header_has(const StringName &key) {
 	return _custom_response_headers.has(key);
+}
+void WebServerRequest::custom_response_header_erase(const StringName &key) {
+	_custom_response_headers.erase(key);
 }
 HashMap<StringName, String> WebServerRequest::custom_response_headers_get() {
 	return _custom_response_headers;
@@ -270,6 +273,31 @@ String WebServerRequest::get_content_type() {
 }
 void WebServerRequest::set_content_type(const String &content_type) {
 	custom_response_header_set("Content-Type", content_type);
+}
+
+String WebServerRequest::content_disposition_get() const {
+	return custom_response_header_get("Content-Disposition");
+}
+void WebServerRequest::content_disposition_set(const String &p_value) {
+	_content_disposition_file_name = String();
+	custom_response_header_set("Content-Disposition", p_value);
+}
+void WebServerRequest::content_disposition_clear() {
+	_content_disposition_file_name = String();
+
+	custom_response_header_erase("Content-Disposition");
+}
+void WebServerRequest::content_disposition_file_name_set(const String &p_file_name) {
+	_content_disposition_file_name = p_file_name;
+
+	if (p_file_name.empty()) {
+		custom_response_header_set("Content-Disposition", "attachment;");
+	} else {
+		custom_response_header_set("Content-Disposition", vformat("attachment; filename=\"%s\"; filename*=UTF-8''%s", String(p_file_name.ascii()), p_file_name.percent_encode()));
+	}
+}
+String WebServerRequest::content_disposition_file_name_get() const {
+	return _content_disposition_file_name;
 }
 
 HTTPServerEnums::HTTPMethod WebServerRequest::get_method() const {
@@ -389,6 +417,9 @@ void WebServerRequest::send() {
 
 void WebServerRequest::send_file(const String &p_file_path) {
 	// WebServerRequestPool::return_request(this);
+}
+
+void WebServerRequest::send_raw_data(const PoolByteArray &p_data) {
 }
 
 void WebServerRequest::send_error(int error_code) {
@@ -680,11 +711,18 @@ void WebServerRequest::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("custom_response_header_set", "key", "value"), &WebServerRequest::custom_response_header_set);
 	ClassDB::bind_method(D_METHOD("custom_response_header_get", "key"), &WebServerRequest::custom_response_header_get);
 	ClassDB::bind_method(D_METHOD("custom_response_header_has", "key"), &WebServerRequest::custom_response_header_has);
+	ClassDB::bind_method(D_METHOD("custom_response_header_erase", "key"), &WebServerRequest::custom_response_header_erase);
 	ClassDB::bind_method(D_METHOD("custom_response_headers_get"), &WebServerRequest::custom_response_headers_get_bind);
 
 	ClassDB::bind_method(D_METHOD("get_content_type"), &WebServerRequest::get_content_type);
 	ClassDB::bind_method(D_METHOD("set_content_type", "content_type"), &WebServerRequest::set_content_type);
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "content_type"), "set_content_type", "get_content_type");
+
+	ClassDB::bind_method(D_METHOD("content_disposition_get"), &WebServerRequest::content_disposition_get);
+	ClassDB::bind_method(D_METHOD("content_disposition_set", "value"), &WebServerRequest::content_disposition_set);
+	ClassDB::bind_method(D_METHOD("content_disposition_clear"), &WebServerRequest::content_disposition_clear);
+	ClassDB::bind_method(D_METHOD("content_disposition_file_name_get"), &WebServerRequest::content_disposition_file_name_get);
+	ClassDB::bind_method(D_METHOD("content_disposition_file_name_set", "file_name"), &WebServerRequest::content_disposition_file_name_set);
 
 	ClassDB::bind_method(D_METHOD("get_method"), &WebServerRequest::get_method);
 
@@ -721,6 +759,7 @@ void WebServerRequest::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("compile_and_send_body"), &WebServerRequest::compile_and_send_body);
 	ClassDB::bind_method(D_METHOD("send"), &WebServerRequest::send);
 	ClassDB::bind_method(D_METHOD("send_file", "file_path"), &WebServerRequest::send_file);
+	ClassDB::bind_method(D_METHOD("send_raw_data", "data"), &WebServerRequest::send_raw_data);
 	ClassDB::bind_method(D_METHOD("send_error", "error_code"), &WebServerRequest::send_error);
 
 	ClassDB::bind_method(D_METHOD("parser_get_path"), &WebServerRequest::parser_get_path);

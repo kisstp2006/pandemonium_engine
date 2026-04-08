@@ -31,31 +31,45 @@
 
 #include "pdf_ex_data.h"
 
+#include "pdf_3d_measure.h"
+
 #include "hpdf.h"
-#include "hpdf_doc.h"
-#include "hpdf_pages.h"
+
+uint32_t PDFExData::set_3d_measurement(const Ref<PDF3DMeasure> &p_measure) {
+	HPDF_3DMeasure measure = NULL;
+
+	if (p_measure.is_valid()) {
+		measure = (HPDF_3DMeasure)p_measure->_get_hpdf_3d_measure();
+	}
+
+	_status = HPDF_3DAnnotExData_Set3DMeasurement((HPDF_ExData)_ex_data, measure);
+
+	return _status;
+}
 
 uint32_t PDFExData::get_status() {
 	return _status;
 }
 
 PDFExData::PDFExData() {
-	_font = NULL;
+	_status = 0;
+
+	_ex_data = NULL;
 }
 
 PDFExData::~PDFExData() {
 }
 
-void *PDFExData::_get_hpdf_font() const {
-	return _font;
+void *PDFExData::_get_hpdf_ex_data() const {
+	return _ex_data;
 }
 
-void PDFExData::_set_hpdf_font(void *p_font) {
-	_font = p_font;
+void PDFExData::_set_hpdf_ex_data(void *p_ex_data) {
+	_ex_data = p_ex_data;
 }
 
 void PDFExData::_bind_methods() {
-	//ClassDB::bind_method(D_METHOD("get_width"), &PDFExData::get_width);
-	//ClassDB::bind_method(D_METHOD("set_width", "val"), &PDFExData::set_width);
-	//ADD_PROPERTY(PropertyInfo(Variant::REAL, "width"), "set_width", "get_width");
+	ClassDB::bind_method(D_METHOD("set_3d_measurement", "measure"), &PDFExData::set_3d_measurement);
+
+	ClassDB::bind_method(D_METHOD("get_status"), &PDFExData::get_status);
 }
