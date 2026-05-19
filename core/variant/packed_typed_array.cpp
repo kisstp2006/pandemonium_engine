@@ -2806,7 +2806,7 @@ StringName PackedTypedArray::get_object_class_name() const {
 	return _p->object_class_name;
 }
 void PackedTypedArray::set_object_class_name(const StringName &p_object_type_name) {
-	ERR_FAIL_COND(_p->type != Variant::NIL || _p->data);
+	ERR_FAIL_COND((_p->type != Variant::NIL && _p->type != Variant::OBJECT) || _p->data);
 	ERR_FAIL_COND(_p->type == Variant::OBJECT && _p->object_class_name != StringName());
 
 	/*
@@ -2848,7 +2848,6 @@ void PackedTypedArray::set_type_from_name(const StringName &p_type_name) {
 	}
 
 	_p->type = variant_type;
-	_p->int_type = INT_TYPE_SIGNED_64;
 
 	if (variant_type == Variant::OBJECT) {
 		_p->object_class_name = p_type_name;
@@ -2872,7 +2871,6 @@ void PackedTypedArray::set_type_from_variant(const Variant &p_variant) {
 	*/
 
 	_p->type = p_variant.get_type();
-	_p->int_type = INT_TYPE_SIGNED_64;
 
 	if (_p->type == Variant::OBJECT) {
 		Object *obj = ObjectDB::get_instance(p_variant.get_object_instance_id());
@@ -3130,6 +3128,7 @@ bool PackedTypedArray::can_take_variant(const Variant &p_value) const {
 				StringName global_class_name = script->get_global_class_name();
 
 				if (global_class_name == StringName()) {
+					script = script->get_base_script();
 					continue;
 				}
 
@@ -3188,18 +3187,11 @@ PackedTypedArray::PackedTypedArray(const PackedTypedArray &p_from) {
 	_ref(p_from);
 }
 
-PackedTypedArray::PackedTypedArray(const StringName &p_type_name, const Variant &p_from) {
-	_p = memnew(PackedTypedArrayPrivate);
-	_p->refcount.init();
-	append_from(p_from);
-}
-
-PackedTypedArray::PackedTypedArray(const StringName &p_type_name, const Variant &p_from, const IntType p_int_type) {
+PackedTypedArray::PackedTypedArray(const StringName &p_type_name, const IntType p_int_type) {
 	_p = memnew(PackedTypedArrayPrivate);
 	_p->refcount.init();
 	_p->int_type = p_int_type;
 	set_type_from_name(p_type_name);
-	append_from(p_from);
 }
 
 /*
