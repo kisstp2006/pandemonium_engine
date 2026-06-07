@@ -68,7 +68,7 @@ bool SkeletonModification3DLookAt::_get(const StringName &p_path, Variant &r_ret
 void SkeletonModification3DLookAt::_get_property_list(List<PropertyInfo> *p_list) const {
 	p_list->push_back(PropertyInfo(Variant::BOOL, "lock_rotation_to_plane", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 	if (lock_rotation_to_plane) {
-		p_list->push_back(PropertyInfo(Variant::INT, "lock_rotation_plane", PROPERTY_HINT_ENUM, "X plane, Y plane, Z plane", PROPERTY_USAGE_DEFAULT));
+		p_list->push_back(PropertyInfo(Variant::INT, "lock_rotation_plane", PROPERTY_HINT_ENUM, "X plane,Y plane,Z plane", PROPERTY_USAGE_DEFAULT));
 	}
 	p_list->push_back(PropertyInfo(Variant::VECTOR3, "additional_rotation", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT));
 }
@@ -97,33 +97,55 @@ void SkeletonModification3DLookAt::_execute(real_t p_delta) {
 	if (_print_execution_error(bone_idx <= -1, "Bone index is invalid. Cannot execute modification!")) {
 		return;
 	}
-	Transform new_bone_trans = stack->skeleton->get_bone_local_pose_override(bone_idx);
-	if (new_bone_trans == Transform()) {
-		new_bone_trans = stack->skeleton->get_bone_pose(bone_idx);
+
+	// Reset override
+	// Needs to be done, as we need the proper position if there are modifications on previous bones.
+	// (no override versions ignore overrides on the previous bones aswell.)
+	// Maybe Skeleton could support getting this directly without reset eventually.
+	stack->skeleton->set_bone_local_pose_override(bone_idx, Transform(), 0, false);
+	stack->skeleton->force_update_bone_children_transforms(bone_idx);
+
+	int parent_bone = stack->skeleton->get_bone_parent(bone_idx);
+
+	if (parent_bone == -1) {
+		parent_bone = bone_idx;
 	}
-	Vector3 target_pos = stack->skeleton->global_pose_to_local_pose(bone_idx, stack->skeleton->world_transform_to_global_pose(target->get_global_transform())).origin;
+
+	// Our bone's pose in it's local space (from the parent bone's transform)
+	// It's origin should be the tip
+	Transform bone_pose = stack->skeleton->get_bone_pose(bone_idx);
+	// target pos from the point of view of the parent bone's tip!
+	Vector3 target_pos = stack->skeleton->global_pose_to_local_pose(parent_bone, stack->skeleton->world_transform_to_global_pose(target->get_global_transform())).origin;
 
 	// Lock the rotation to a plane relative to the bone by changing the target position
 	if (lock_rotation_to_plane) {
 		if (lock_rotation_plane == ROTATION_PLANE::ROTATION_PLANE_X) {
-			target_pos.x = new_bone_trans.origin.x;
+			target_pos.x = bone_pose.origin.x;
 		} else if (lock_rotation_plane == ROTATION_PLANE::ROTATION_PLANE_Y) {
-			target_pos.y = new_bone_trans.origin.y;
+			target_pos.y = bone_pose.origin.y;
 		} else if (lock_rotation_plane == ROTATION_PLANE::ROTATION_PLANE_Z) {
-			target_pos.z = new_bone_trans.origin.z;
+			target_pos.z = bone_pose.origin.z;
 		}
 	}
 
 	// Look at the target!
-	new_bone_trans = new_bone_trans.looking_at(target_pos, Vector3(0, 1, 0));
+	Transform new_bone_trans = bone_pose.looking_at(target_pos, Vector3(0, 1, 0));
 	// Convert from Z-forward to whatever direction the bone faces.
 	stack->skeleton->update_bone_rest_forward_vector(bone_idx);
 	new_bone_trans.basis = stack->skeleton->global_pose_z_forward_to_bone_forward(bone_idx, new_bone_trans.basis);
 
 	// Apply additional rotation
-	new_bone_trans.basis.rotate_local(Vector3(1, 0, 0), additional_rotation.x);
-	new_bone_trans.basis.rotate_local(Vector3(0, 1, 0), additional_rotation.y);
-	new_bone_trans.basis.rotate_local(Vector3(0, 0, 1), additional_rotation.z);
+	if (!Math::is_zero_approx(additional_rotation.x)) {
+		new_bone_trans.basis.rotate_local(Vector3(1, 0, 0), additional_rotation.x);
+	}
+
+	if (!Math::is_zero_approx(additional_rotation.y)) {
+		new_bone_trans.basis.rotate_local(Vector3(0, 1, 0), additional_rotation.y);
+	}
+
+	if (!Math::is_zero_approx(additional_rotation.z)) {
+		new_bone_trans.basis.rotate_local(Vector3(0, 0, 1), additional_rotation.z);
+	}
 
 	stack->skeleton->set_bone_local_pose_override(bone_idx, new_bone_trans, stack->strength, true);
 	stack->skeleton->force_update_bone_children_transforms(bone_idx);
@@ -215,7 +237,7 @@ void SkeletonModification3DLookAt::set_additional_rotation(Vector3 p_offset) {
 }
 
 bool SkeletonModification3DLookAt::get_lock_rotation_to_plane() const {
-	return lock_rotation_plane;
+	return lock_rotation_to_plane;
 }
 
 void SkeletonModification3DLookAt::set_lock_rotation_to_plane(bool p_lock_rotation) {
@@ -260,7 +282,7 @@ SkeletonModification3DLookAt::SkeletonModification3DLookAt() {
 
 	bone_idx = -1;
 	target_node_cache = 0;
-	additional_rotation = Vector3(1, 0, 0);
+	additional_rotation = Vector3(0, 0, 0);
 	lock_rotation_to_plane = false;
 	enabled = true;
 	lock_rotation_plane = ROTATION_PLANE_X;
