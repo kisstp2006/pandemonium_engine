@@ -475,6 +475,15 @@ EditorPlugin::AfterGUIInput GridMapEditor::do_input_action(Camera *p_camera, con
 		si.new_value = -1;
 		si.new_orientation = 0;
 		si.old_value = node->get_cell_item(cell[0], cell[1], cell[2]);
+
+		// If we right click on an empty space return, this way the editor is much more usable.
+		// This will make the spatial viewport start looking around
+		// It's not perfect, this editor will need a bigger overhaul eventually.
+		if (p_click && si.old_value == -1) {
+			input_action = INPUT_NONE;
+			return EditorPlugin::AFTER_GUI_INPUT_PASS;
+		}
+
 		si.old_orientation = node->get_cell_item_orientation(cell[0], cell[1], cell[2]);
 		set_items.push_back(si);
 		node->set_cell_item(cell[0], cell[1], cell[2], -1);
@@ -1230,9 +1239,16 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 	add_child(ec);
 
 	spatial_editor_hb = memnew(HBoxContainer);
-	spatial_editor_hb->set_h_size_flags(SIZE_EXPAND_FILL);
-	spatial_editor_hb->set_alignment(BoxContainer::ALIGN_END);
+	//spatial_editor_hb->set_h_size_flags(SIZE_EXPAND_FILL);
+	//spatial_editor_hb->set_alignment(BoxContainer::ALIGN_END);
 	SpatialEditor::get_singleton()->add_control_to_menu_panel(spatial_editor_hb);
+
+	spatial_editor_hb->add_child(memnew(VSeparator));
+
+	options = memnew(MenuButton);
+	spatial_editor_hb->add_child(options);
+
+	spatial_editor_hb->add_child(memnew(VSeparator));
 
 	spin_box_label = memnew(Label);
 	spin_box_label->set_text(TTR("Floor:"));
@@ -1249,13 +1265,10 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 	floor->connect("mouse_exited", this, "_floor_mouse_exited");
 	floor->get_line_edit()->connect("mouse_exited", this, "_floor_mouse_exited");
 
-	spatial_editor_hb->add_child(memnew(VSeparator));
 
-	options = memnew(MenuButton);
-	spatial_editor_hb->add_child(options);
 	spatial_editor_hb->hide();
 
-	options->set_text(TTR("Grid Map"));
+	//options->set_text(TTR("Grid Map"));
 	options->get_popup()->add_check_item(TTR("Snap View"), MENU_OPTION_LOCK_VIEW);
 	options->get_popup()->add_separator();
 	options->get_popup()->add_item(TTR("Previous Floor"), MENU_OPTION_PREV_LEVEL, KEY_Q);
